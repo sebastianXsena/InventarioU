@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Reserva de Laboratorios</title>
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  
+  <!-- FullCalendar CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.css" rel="stylesheet" />
+</head>
+<body class="body">
+  <div class="app">
+    <!-- Navegación -->
+    <nav class="navbar">
+      <div class="navbar__container">
+        <div class="navbar__logo">
+          <h1 class="navbar__title">🏢 ReservaLab</h1>
+        </div>
+        
+        <ul class="navbar__menu">
+          <li class="navbar__item">
+            <a href="#" class="navbar__link js-nav-link" data-page="dashboard">Dashboard</a>
+          </li>
+          <li class="navbar__item">
+            <a href="#" class="navbar__link js-nav-link" data-page="reservations">Mis Reservas</a>
+          </li>
+          <li class="navbar__item">
+            <a href="#" class="navbar__link js-nav-link" data-page="laboratories">Laboratorios</a>
+          </li>
+          <li class="navbar__item">
+            <a href="#" class="navbar__link js-nav-link" data-page="admin" id="admin-link" style="display: none;">Panel Admin</a>
+          </li>
+          <li class="navbar__item navbar__item--user">
+            <span id="user-name" class="navbar__user-name"></span>
+            <button id="logout-btn" class="btn btn--secondary btn--sm">Salir</button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+      <!-- Auth Page -->
+      <div id="auth-page" class="page page--active">
+        <div class="auth-container">
+          <div class="auth-box">
+            <h2 class="auth-box__title">Bienvenido a ReservaLab</h2>
+            <p class="auth-box__subtitle">Plataforma de Reserva de Laboratorios</p>
+            
+            <!-- Toggle Login/Register -->
+            <div class="auth-toggle">
+              <button class="auth-toggle__btn auth-toggle__btn--active" id="login-toggle">Ingresar</button>
+              <button class="auth-toggle__btn" id="register-toggle">Registrarse</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="form form--active">
+              <div class="form-group">
+                <label for="login-email" class="form-label">Email</label>
+                <input type="email" id="login-email" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="login-password" class="form-label">Contraseña</label>
+                <input type="password" id="login-password" class="form-input" required>
+              </div>
+              <button type="submit" class="btn btn--primary btn--lg">Ingresar</button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="form">
+              <div class="form-group">
+                <label for="register-name" class="form-label">Nombre Completo</label>
+                <input type="text" id="register-name" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="register-email" class="form-label">Email</label>
+                <input type="email" id="register-email" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label for="register-password" class="form-label">Contraseña (mínimo 8 caracteres)</label>
+                <input type="password" id="register-password" class="form-input" required>
+              </div>
+              <button type="submit" class="btn btn--primary btn--lg">Registrarse</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Page -->
+      <div id="dashboard-page" class="page">
+        <div class="container">
+          <h2 class="page-title">Dashboard</h2>
+          
+          <div class="dashboard-grid">
+            <!-- Estadísticas -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-card__icon stat-card__icon--primary">📅</div>
+                <div class="stat-card__content">
+                  <h3 class="stat-card__title">Mis Reservas</h3>
+                  <p class="stat-card__value" id="stat-reservations">0</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-card__icon stat-card__icon--success">✅</div>
+                <div class="stat-card__content">
+                  <h3 class="stat-card__title">Aprobadas</h3>
+                  <p class="stat-card__value" id="stat-approved">0</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-card__icon stat-card__icon--warning">⏳</div>
+                <div class="stat-card__content">
+                  <h3 class="stat-card__title">Pendientes</h3>
+                  <p class="stat-card__value" id="stat-pending">0</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-card__icon stat-card__icon--info">🏢</div>
+                <div class="stat-card__content">
+                  <h3 class="stat-card__title">Laboratorios Activos</h3>
+                  <p class="stat-card__value" id="stat-labs">0</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Próximas Reservas -->
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Próximas Reservas</h3>
+              </div>
+              <div class="card__body">
+                <div id="upcoming-reservations" class="reservations-list">
+                  <p class="text--muted">Cargando...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reservations Page -->
+      <div id="reservations-page" class="page">
+        <div class="container">
+          <div class="page-header">
+            <h2 class="page-title">Mis Reservas</h2>
+            <button class="btn btn--primary js-nav-link" data-page="create-reservation">
+              ➕ Nueva Reserva
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card__body">
+              <div id="reservations-list" class="reservations-table">
+                <p class="text--muted">Cargando reservas...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Reservation Page -->
+      <div id="create-reservation-page" class="page">
+        <div class="container container--sm">
+          <h2 class="page-title">Nueva Reserva</h2>
+
+          <div class="card">
+            <div class="card__body">
+              <form id="create-reservation-form" class="form">
+                <!-- Seleccionar Laboratorio -->
+                <div class="form-group">
+                  <label for="res-lab" class="form-label">Laboratorio *</label>
+                  <select id="res-lab" class="form-select" required>
+                    <option value="">Seleccionar laboratorio...</option>
+                  </select>
+                </div>
+
+                <!-- Fecha y Hora -->
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="res-start" class="form-label">Inicio *</label>
+                    <input type="datetime-local" id="res-start" class="form-input" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="res-end" class="form-label">Fin *</label>
+                    <input type="datetime-local" id="res-end" class="form-input" required>
+                  </div>
+                </div>
+
+                <!-- Materiales -->
+                <div class="form-group">
+                  <label class="form-label">Materiales Solicitados *</label>
+                  <div id="items-container" class="items-container">
+                    <p class="text--muted">Selecciona un laboratorio primero</p>
+                  </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="form-actions">
+                  <button type="submit" class="btn btn--primary">Crear Reserva</button>
+                  <button type="button" class="btn btn--secondary js-nav-link" data-page="reservations">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Laboratories Page -->
+      <div id="laboratories-page" class="page">
+        <div class="container">
+          <h2 class="page-title">Laboratorios Disponibles</h2>
+
+          <div id="laboratories-grid" class="grid grid--3">
+            <p class="text--muted">Cargando laboratorios...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Page -->
+      <div id="admin-page" class="page">
+        <div class="container">
+          <h2 class="page-title">Panel de Administración</h2>
+
+          <!-- Admin Tabs -->
+          <div class="admin-tabs">
+            <button class="admin-tab js-admin-tab" data-tab="requests" style="display: none;">Solicitudes de Reserva</button>
+            <button class="admin-tab js-admin-tab" data-tab="laboratories" style="display: none;">Gestionar Laboratorios</button>
+            <button class="admin-tab js-admin-tab" data-tab="inventory" style="display: none;">Inventario</button>
+            <button class="admin-tab js-admin-tab" data-tab="reports" style="display: none;">Reportes</button>
+          </div>
+
+          <!-- Requests Tab -->
+          <div id="requests-tab" class="admin-content" style="display: none;">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Solicitudes Pendientes de Aprobación</h3>
+              </div>
+              <div class="card__body">
+                <div id="pending-requests" class="requests-table">
+                  <p class="text--muted">Cargando solicitudes...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reports Tab -->
+          <div id="reports-tab" class="admin-content" style="display: none;">
+            <div class="card">
+              <div class="card__header">
+                <h3 class="card__title">Generar Reporte</h3>
+              </div>
+              <div class="card__body">
+                <form id="report-form" class="form">
+                  <div class="form-group">
+                    <label for="report-month" class="form-label">Mes</label>
+                    <input type="month" id="report-month" class="form-input">
+                  </div>
+                  <button type="submit" class="btn btn--primary">Descargar PDF</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+      <div class="modal__overlay js-close-modal"></div>
+      <div class="modal__content">
+        <button class="modal__close js-close-modal">&times;</button>
+        <div id="modal-body" class="modal__body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>
