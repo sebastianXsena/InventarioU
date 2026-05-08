@@ -49,6 +49,15 @@ body {
   min-height: 100vh;
 }
 
+.layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.layout--auth .header--sidebar {
+  display: none;
+}
+
 /* --- Header --- */
 .header {
   background: white;
@@ -59,6 +68,14 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.header--sidebar {
+  border-bottom: none;
+  border-right: 1px solid var(--color-gray-200);
+  width: 260px;
+  height: 100vh;
+  align-self: flex-start;
+}
+
 .header__container {
   max-width: 1200px;
   margin: 0 auto;
@@ -66,6 +83,25 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header--sidebar .header__container {
+  max-width: none;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 1.25rem 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+.header--sidebar .nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .header__logo {
@@ -85,6 +121,12 @@ body {
   align-items: center;
 }
 
+.header--sidebar .nav__list {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
 .nav__item--hidden {
   display: none;
 }
@@ -97,6 +139,17 @@ body {
   font-weight: 500;
   font-size: 0.875rem;
   transition: var(--transition);
+}
+
+.header--sidebar .nav__link {
+  display: block;
+  width: 100%;
+}
+
+.header--sidebar #logoutBtn {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
 }
 
 .nav__link:hover {
@@ -114,6 +167,10 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+}
+
+.layout .main {
+  flex: 1;
 }
 
 .view {
@@ -862,6 +919,31 @@ body {
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .header--sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+
+  .header--sidebar .header__container {
+    height: auto;
+    padding: 0.75rem 1.5rem;
+  }
+
+  .header--sidebar .nav {
+    flex: initial;
+  }
+
+  .header--sidebar #logoutBtn {
+    margin-top: 0;
+    width: auto;
+  }
+
   .header__container {
     flex-direction: column;
     gap: 0.75rem;

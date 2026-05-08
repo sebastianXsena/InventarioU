@@ -35,6 +35,8 @@
     const loggedIn = !!currentUser;
     const isAdmin = currentUser && currentUser.role === 'admin';
 
+    document.querySelector('.layout')?.classList.toggle('layout--auth', !loggedIn);
+
     $$('[data-view]').forEach((item) => {
       const view = item.dataset.view;
       if (!loggedIn) {

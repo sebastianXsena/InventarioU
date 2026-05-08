@@ -3,7 +3,25 @@ const reservationRepo = require('../repositories/reservationRepo');
 const labRepo = require('../repositories/labRepo');
 
 class ReservationService {
-  async create(userId, { labId, startTime, endTime, items, notes }) {
+  async create(userId, payload) {
+    const labId = payload?.labId ?? payload?.lab_id;
+    const startTime = payload?.startTime ?? payload?.start_time;
+    const endTime = payload?.endTime ?? payload?.end_time;
+    const notes = payload?.notes;
+
+    const rawItems = Array.isArray(payload?.items) ? payload.items : [];
+    const normalizedItems = rawItems
+      .map((item) => {
+        const itemId = item?.itemId ?? item?.item_id;
+        const quantityUsedRaw = item?.quantityUsed ?? item?.quantity_used ?? item?.quantity_requested;
+        const quantityUsed = Number.parseInt(quantityUsedRaw, 10);
+        return {
+          itemId,
+          quantityUsed: Number.isFinite(quantityUsed) ? quantityUsed : quantityUsedRaw,
+        };
+      })
+      .filter((item) => item.itemId);
+
     const lab = await labRepo.findById(labId);
     if (!lab) {
       const err = new Error('Laboratory not found');
@@ -31,8 +49,8 @@ class ReservationService {
       throw err;
     }
 
-    if (items && items.length > 0) {
-      const stockCheck = await reservationRepo.checkStockAvailability(items);
+    if (normalizedItems.length > 0) {
+      const stockCheck = await reservationRepo.checkStockAvailability(normalizedItems);
       if (!stockCheck.available) {
         const err = new Error(stockCheck.reason);
         err.statusCode = 400;
@@ -44,17 +62,10 @@ class ReservationService {
     try {
       await client.query('BEGIN');
 
-      const reservation = await reservationRepo.create(
-        { userId, labId, startTime, endTime, notes },
-        client
-      );
+      const reservation = await reservationRepo.create({ userId, labId, startTime, endTime, notes }, client);
 
-      if (items && items.length > 0) {
-        const formattedItems = items.map((item) => ({
-          itemId: item.item_id,
-          quantityUsed: item.quantity_used,
-        }));
-        await reservationRepo.addItems(reservation.id, formattedItems, client);
+      if (normalizedItems.length > 0) {
+        await reservationRepo.addItems(reservation.id, normalizedItems, client);
       }
 
       await client.query('COMMIT');

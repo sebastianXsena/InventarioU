@@ -3,13 +3,22 @@ const labRepo = require('../repositories/labRepo');
 
 class ItemService {
   async create(data) {
-    const lab = await labRepo.findById(data.labId);
+    const labId = data?.labId ?? data?.lab_id;
+    const totalStock = data?.totalStock ?? data?.total_stock;
+    const normalized = {
+      name: data?.name,
+      description: data?.description,
+      totalStock,
+      labId,
+    };
+
+    const lab = await labRepo.findById(labId);
     if (!lab) {
       const err = new Error('Laboratory not found');
       err.statusCode = 404;
       throw err;
     }
-    return itemRepo.create(data);
+    return itemRepo.create(normalized);
   }
 
   async getAll() {
@@ -32,7 +41,12 @@ class ItemService {
 
   async update(id, data) {
     await this.getById(id);
-    return itemRepo.update(id, data);
+    const normalized = {
+      name: data?.name,
+      description: data?.description,
+      totalStock: data?.totalStock ?? data?.total_stock,
+    };
+    return itemRepo.update(id, normalized);
   }
 
   async delete(id) {
