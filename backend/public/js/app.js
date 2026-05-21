@@ -763,6 +763,8 @@
     $('#reserveLab').addEventListener('change', onLabChangeForReserve);
     $('#reserveForm').addEventListener('submit', handleReserve);
 
+    $('#itemLabSelect')?.addEventListener('change', loadAdminItems);
+
     $('#generateReportBtn').addEventListener('click', generateReport);
 
     // Set default date to tomorrow
