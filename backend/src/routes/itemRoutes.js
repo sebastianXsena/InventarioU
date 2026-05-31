@@ -4,7 +4,7 @@ const {
   validateItemCreate,
   validateItemUpdate,
 } = require('../middleware/validation');
-const itemController = require('../controllers/itemController');
+const itemController = require('../controllers/ItemController');
 
 const router = express.Router();
 

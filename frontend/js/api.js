@@ -1,217 +1,102 @@
-// ============================================================================
-// API CLIENT - Comunicación con el backend
-// ============================================================================
+const API = {
+  token: null,
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+  setToken(t) {
+    this.token = t;
+    if (t) {
+      localStorage.setItem('token', t);
+    } else {
+      localStorage.removeItem('token');
+    }
+  },
 
-class APIClient {
-  constructor() {
-    this.token = localStorage.getItem('token');
-  }
+  getToken() {
+    return this.token || localStorage.getItem('token');
+  },
 
-  // Método privado para hacer requests
-  async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+  headers() {
+    const h = { 'Content-Type': 'application/json' };
+    const token = this.getToken();
+    if (token) h['Authorization'] = `Bearer ${token}`;
+    return h;
+  },
+
+  async request(method, path, body = null) {
+    const opts = {
+      method,
+      headers: this.headers(),
     };
-
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    if (body && (method === 'POST' || method === 'PATCH')) {
+      opts.body = JSON.stringify(body);
     }
 
+    const res = await fetch(`/api${path}`, opts);
+
+    // Read once; some error responses are not JSON.
+    const rawText = await res.text();
+    let data = null;
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch (_) {
+      data = null;
+    }
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en la solicitud');
+    if (!res.ok) {
+      let message = (data && data.error) ? data.error : (rawText || 'Request failed');
+      if (res.status === 429) {
+        message = 'Too many requests';
       }
 
-      return data;
-    } catch (error) {
-      console.error('Error en API:', error);
-      throw error;
+      const err = new Error(message);
+      err.status = res.status;
+      throw err;
     }
-  }
 
-  setToken(token) {
-    this.token = token;
-    localStorage.setItem('token', token);
-  }
+    return data ?? {};
+  },
 
-  clearToken() {
-    this.token = null;
-    localStorage.removeItem('token');
-  }
+  get(path) { return this.request('GET', path); },
+  post(path, body) { return this.request('POST', path, body); },
+  patch(path, body) { return this.request('PATCH', path, body); },
 
-  // ========== AUTH ==========
-  async register(name, email, password) {
-    const result = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    });
-    this.setToken(result.data.token);
-    return result.data.user;
-  }
+  // Auth
+  register(data) { return this.post('/auth/register', data); },
+  login(data) { return this.post('/auth/login', data); },
+  getProfile() { return this.get('/auth/me'); },
 
-  async login(email, password) {
-    const result = await this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    this.setToken(result.data.token);
-    return result.data.user;
-  }
+  // Labs
+  getLabs() { return this.get('/labs'); },
+  getActiveLabs() { return this.get('/labs/active'); },
+  getLabById(id) { return this.get(`/labs/${id}`); },
+  createLab(data) { return this.post('/labs', data); },
+  updateLab(id, data) { return this.patch(`/labs/${id}`, data); },
+  deleteLab(id) { return this.request('DELETE', `/labs/${id}`); },
 
-  // ========== USERS ==========
-  async getProfile() {
-    const result = await this.request('/users/me');
-    return result.data;
-  }
+  // Items
+  getItems() { return this.get('/items'); },
+  getItemsByLab(labId) { return this.get(`/items/lab/${labId}`); },
+  createItem(data) { return this.post('/items', data); },
+  updateItem(id, data) { return this.patch(`/items/${id}`, data); },
+  deleteItem(id) { return this.request('DELETE', `/items/${id}`); },
+  getItemStats() { return this.get('/items/stats'); },
 
-  async updateProfile(data) {
-    const result = await this.request('/users/me', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-    return result.data;
-  }
-
-  async getUsers(limit = 10, offset = 0) {
-    const result = await this.request(`/users?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  // ========== LABORATORIES ==========
-  async getLaboratories(limit = 10, offset = 0) {
-    const result = await this.request(`/laboratories?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async getLaboratory(id) {
-    const result = await this.request(`/laboratories/${id}`);
-    return result.data;
-  }
-
-  async getActiveLaboratories(limit = 10, offset = 0) {
-    const result = await this.request(`/laboratories/active?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async createLaboratory(data) {
-    const result = await this.request('/laboratories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return result.data;
-  }
-
-  async updateLaboratory(id, data) {
-    const result = await this.request(`/laboratories/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-    return result.data;
-  }
-
-  // ========== ITEMS ==========
-  async getItems(limit = 10, offset = 0) {
-    const result = await this.request(`/items?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async getItem(id) {
-    const result = await this.request(`/items/${id}`);
-    return result.data;
-  }
-
-  async getItemsByLaboratory(labId, limit = 10, offset = 0) {
-    const result = await this.request(`/items/laboratory/${labId}?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async createItem(data) {
-    const result = await this.request('/items', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return result.data;
-  }
-
-  // ========== RESERVATIONS ==========
-  async createReservation(data) {
-    const result = await this.request('/reservations', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return result.data;
-  }
-
-  async getMyReservations(limit = 10, offset = 0) {
-    const result = await this.request(`/reservations/me?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async getReservation(id) {
-    const result = await this.request(`/reservations/${id}`);
-    return result.data;
-  }
-
-  async getAllReservations(limit = 10, offset = 0) {
-    const result = await this.request(`/reservations?limit=${limit}&offset=${offset}`);
-    return result;
-  }
-
-  async getReservationsByLaboratory(labId, status = null, limit = 10, offset = 0) {
-    let url = `/reservations/laboratory/${labId}?limit=${limit}&offset=${offset}`;
-    if (status) url += `&status=${status}`;
-    const result = await this.request(url);
-    return result;
-  }
-
-  async approveReservation(id) {
-    const result = await this.request(`/reservations/${id}/approve`, {
-      method: 'PATCH',
-    });
-    return result.data;
-  }
-
-  async rejectReservation(id, reason) {
-    const result = await this.request(`/reservations/${id}/reject`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        status: 'rejected',
-        rejection_reason: reason,
-      }),
-    });
-    return result.data;
-  }
-
-  async cancelReservation(id) {
-    const result = await this.request(`/reservations/${id}`, {
-      method: 'DELETE',
-    });
-    return result.data;
-  }
-
-  async checkAvailability(labId, startDate, endDate) {
-    const result = await this.request('/reservations/availability/check', {
-      method: 'POST',
-      body: JSON.stringify({
-        labId,
-        start_date: startDate,
-        end_date: endDate,
-      }),
-    });
-    return result.data;
-  }
-}
-
-// Instancia global
-const api = new APIClient();
+  // Reservations
+  getReservations(filters = {}) {
+    const qs = new URLSearchParams();
+    if (filters.status) qs.set('status', filters.status);
+    if (filters.lab_id) qs.set('lab_id', filters.lab_id);
+    if (filters.start_date) qs.set('start_date', filters.start_date);
+    if (filters.end_date) qs.set('end_date', filters.end_date);
+    const q = qs.toString();
+    return this.get(`/reservations${q ? '?' + q : ''}`);
+  },
+  getMyReservations() { return this.get('/reservations/my'); },
+  getReservation(id) { return this.get(`/reservations/${id}`); },
+  getReservationsByLab(labId, startDate, endDate) {
+    return this.get(`/reservations/lab/${labId}?start_date=${startDate}&end_date=${endDate}`);
+  },
+  createReservation(data) { return this.post('/reservations', data); },
+  approveReservation(id, status) { return this.patch(`/reservations/${id}/approve`, { status }); },
+  cancelReservation(id) { return this.patch(`/reservations/${id}/cancel`); },
+  getMonthlyReport(year, month) { return this.get(`/reservations/report/${year}/${month}`); },
+};

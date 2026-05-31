@@ -111,14 +111,15 @@ class ReservationRepository {
     return results;
   }
 
-  async getItemsByReservation(reservationId) {
+  async getItemsByReservation(reservationId, client) {
+    const executor = client || db;
     const query = `
       SELECT ri.*, i.name AS item_name, i.total_stock
       FROM reservation_items ri
       JOIN items i ON ri.item_id = i.id
       WHERE ri.reservation_id = $1
     `;
-    const { rows } = await db.query(query, [reservationId]);
+    const { rows } = await executor.query(query, [reservationId]);
     return rows;
   }
 

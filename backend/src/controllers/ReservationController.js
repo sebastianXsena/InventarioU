@@ -1,4 +1,4 @@
-const reservationService = require('../services/reservationService');
+const reservationService = require('../services/ReservationService');
 
 const create = async (req, res, next) => {
   try {

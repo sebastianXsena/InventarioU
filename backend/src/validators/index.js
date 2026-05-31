@@ -1,5 +1,22 @@
 const Joi = require('joi');
 
+const timeHHMM = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/);
+const blockedScheduleEntry = Joi.object({
+  day_of_week: Joi.number().integer().min(1).max(7).required(), // 1=Mon ... 7=Sun
+  start: timeHHMM.required(),
+  end: timeHHMM.required(),
+  name: Joi.string().max(120).allow('').trim().optional(),
+}).custom((value, helpers) => {
+  const [sh, sm] = String(value.start).split(':').map((n) => parseInt(n, 10));
+  const [eh, em] = String(value.end).split(':').map((n) => parseInt(n, 10));
+  const startMin = (sh * 60) + sm;
+  const endMin = (eh * 60) + em;
+  if (!(endMin > startMin)) {
+    return helpers.error('any.invalid');
+  }
+  return value;
+}, 'start/end ordering');
+
 const userSchema = {
   register: Joi.object({
     name: Joi.string().min(2).max(100).required().trim(),
@@ -19,12 +36,14 @@ const labSchema = {
     location: Joi.string().min(2).max(200).required().trim(),
     capacity: Joi.number().integer().min(1).required(),
     status: Joi.string().valid('active', 'maintenance').default('active'),
+    blocked_schedule: Joi.array().items(blockedScheduleEntry).default([]),
   }),
   update: Joi.object({
     name: Joi.string().min(2).max(100).trim(),
     location: Joi.string().min(2).max(200).trim(),
     capacity: Joi.number().integer().min(1),
     status: Joi.string().valid('active', 'maintenance'),
+    blocked_schedule: Joi.array().items(blockedScheduleEntry),
   }).min(1),
 };
 

@@ -109,14 +109,14 @@ backend/
 │       ├── init-db.js           # Database initialization
 │       ├── seed-db.js           # Sample data
 │       └── validation.js        # Validation helper
-├── public/                      # Frontend
-│   ├── index.html
-│   ├── css/styles.css           # BEM methodology
-│   ├── js/api.js                # API client
-│   ├── js/app.js                # Application logic
-│   └── report-template.html     # PDF report template
+└── (sin frontend embebido)      # El frontend se sirve desde la carpeta /frontend
 └── docs/
     └── API.md                   # API documentation
+
+frontend/                         # Frontend (Vanilla JS)
+├── index.html
+├── css/
+└── js/
 ```
 
 ## API Endpoints

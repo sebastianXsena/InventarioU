@@ -4,7 +4,7 @@ const {
   validateReservationCreate,
   validateReservationApprove,
 } = require('../middleware/validation');
-const reservationController = require('../controllers/reservationController');
+const reservationController = require('../controllers/ReservationController');
 
 const router = express.Router();
 

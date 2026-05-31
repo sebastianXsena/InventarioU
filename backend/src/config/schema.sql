@@ -5,6 +5,9 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Required for GiST exclusion constraints involving equality on non-range types (e.g. UUID)
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- =============================================
 -- USERS TABLE
 -- =============================================
@@ -30,11 +33,16 @@ CREATE TABLE IF NOT EXISTS laboratories (
     location VARCHAR(200) NOT NULL,
     capacity INTEGER NOT NULL CHECK (capacity > 0),
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'maintenance')),
+    blocked_schedule JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_laboratories_status ON laboratories(status);
+
+-- If the table already existed from an older schema, add the column.
+ALTER TABLE laboratories
+    ADD COLUMN IF NOT EXISTS blocked_schedule JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 -- =============================================
 -- ITEMS TABLE (Inventory per Laboratory)

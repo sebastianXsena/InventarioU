@@ -34,7 +34,9 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(sanitizeInput);
 
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve the root-level frontend/ (InventarioU/frontend) instead of backend/public
+const FRONTEND_DIR = path.join(__dirname, '../../frontend');
+app.use(express.static(FRONTEND_DIR));
 
 app.use('/api/auth', userRoutes);
 app.use('/api/labs', labRoutes);
@@ -42,7 +44,7 @@ app.use('/api/items', itemRoutes);
 app.use('/api/reservations', reservationRoutes);
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
 app.use((req, res) => {

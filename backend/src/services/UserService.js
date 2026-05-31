@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const userRepo = require('../repositories/userRepo');
 
 class UserService {
-  async register({ name, email, password, role }) {
+  async register({ name, email, password, role = 'student' }) {
     const existing = await userRepo.findByEmail(email);
     if (existing) {
       const err = new Error('Email already registered');
@@ -11,11 +11,16 @@ class UserService {
       throw err;
     }
 
-    const salt = await bcrypt.genSalt(12);
-    const passwordHash = await bcrypt.hash(password, salt);
-
+    const passwordHash = await bcrypt.hash(password, 10);
     const user = await userRepo.create({ name, email, passwordHash, role });
-    return this.generateAuthResponse(user);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    return { user, token };
   }
 
   async login({ email, password }) {
@@ -26,18 +31,27 @@ class UserService {
       throw err;
     }
 
-    const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) {
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
       const err = new Error('Invalid credentials');
       err.statusCode = 401;
       throw err;
     }
 
-    return this.generateAuthResponse(user);
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    return {
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    };
   }
 
-  async getProfile(userId) {
-    const user = await userRepo.findById(userId);
+  async getProfile(id) {
+    const user = await userRepo.findById(id);
     if (!user) {
       const err = new Error('User not found');
       err.statusCode = 404;
@@ -48,28 +62,6 @@ class UserService {
 
   async getAllUsers() {
     return userRepo.findAll();
-  }
-
-  generateAuthResponse(user) {
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '8h',
-    });
-
-    return {
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    };
   }
 }
 

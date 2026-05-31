@@ -1,13 +1,15 @@
 const db = require('../config/database');
 
 class LabRepository {
-  async create({ name, location, capacity, status }) {
+  async create({ name, location, capacity, status, blocked_schedule }) {
     const query = `
-      INSERT INTO laboratories (name, location, capacity, status)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO laboratories (name, location, capacity, status, blocked_schedule)
+      VALUES ($1, $2, $3, $4, $5::jsonb)
       RETURNING *
     `;
-    const { rows } = await db.query(query, [name, location, capacity, status]);
+    const schedule = blocked_schedule === undefined ? [] : blocked_schedule;
+    const scheduleJson = typeof schedule === 'string' ? schedule : JSON.stringify(schedule);
+    const { rows } = await db.query(query, [name, location, capacity, status, scheduleJson]);
     return rows[0];
   }
 
@@ -23,7 +25,7 @@ class LabRepository {
     return rows[0] || null;
   }
 
-  async update(id, { name, location, capacity, status }) {
+  async update(id, { name, location, capacity, status, blocked_schedule }) {
     const fields = [];
     const values = [];
     let idx = 1;
@@ -32,6 +34,11 @@ class LabRepository {
     if (location !== undefined) { fields.push(`location = $${idx++}`); values.push(location); }
     if (capacity !== undefined) { fields.push(`capacity = $${idx++}`); values.push(capacity); }
     if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
+    if (blocked_schedule !== undefined) {
+      fields.push(`blocked_schedule = $${idx++}::jsonb`);
+      const scheduleJson = typeof blocked_schedule === 'string' ? blocked_schedule : JSON.stringify(blocked_schedule);
+      values.push(scheduleJson);
+    }
 
     if (fields.length === 0) return null;
 
