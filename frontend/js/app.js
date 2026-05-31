@@ -56,9 +56,11 @@
 
   // --- Inline Form Messages ---
   const formMessageTimers = new Map();
-  function setFormMessage(id, message) {
+  function setFormMessage(id, message, options = {}) {
     const el = document.getElementById(id);
     if (!el) return;
+
+    const { sticky = false } = options;
 
     const existingTimer = formMessageTimers.get(id);
     if (existingTimer) {
@@ -74,13 +76,15 @@
     el.textContent = message;
     el.classList.remove('form-note--hidden');
 
-    // Auto-hide after 3 seconds
-    const t = setTimeout(() => {
-      el.textContent = '';
-      el.classList.add('form-note--hidden');
-      formMessageTimers.delete(id);
-    }, 3000);
-    formMessageTimers.set(id, t);
+    if (!sticky) {
+      // Auto-hide after 3 seconds
+      const t = setTimeout(() => {
+        el.textContent = '';
+        el.classList.add('form-note--hidden');
+        formMessageTimers.delete(id);
+      }, 3000);
+      formMessageTimers.set(id, t);
+    }
   }
 
   // --- Toast ---
@@ -502,8 +506,32 @@
   }
 
   // --- Calendar ---
-  const HOURS = [];
-  for (let h = 7; h <= 21; h++) HOURS.push(h);
+  // Calendar time slots
+  // In this university, 1 "hour" = 45 minutes. We render the grid in 45-min slots.
+  const CAL_START_MIN = 7 * 60;
+  const CAL_END_MIN = 22 * 60; // exclusive (matches old 21:00-22:00 last hour)
+  const CAL_SLOT_MIN = 45;
+  const SLOTS = [];
+  for (let m = CAL_START_MIN; m < CAL_END_MIN; m += CAL_SLOT_MIN) SLOTS.push(m);
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const formatTimeFromMinutes = (totalMinutes) => {
+    const mins = ((totalMinutes % 1440) + 1440) % 1440;
+    const hh = Math.floor(mins / 60);
+    const mm = mins % 60;
+    return `${pad2(hh)}:${pad2(mm)}`;
+  };
+
+  // Align rounding to the calendar grid that starts at CAL_START_MIN (07:00).
+  // If we round from 00:00, we can generate slot minutes that don't exist in SLOTS (e.g. 09:45),
+  // causing reservations to never match rendered cells.
+  const floorMinutesToSlot = (minutes) => {
+    if (!Number.isFinite(minutes)) return CAL_START_MIN;
+    if (minutes <= CAL_START_MIN) return CAL_START_MIN;
+    const offset = minutes - CAL_START_MIN;
+    return CAL_START_MIN + (Math.floor(offset / CAL_SLOT_MIN) * CAL_SLOT_MIN);
+  };
+  const minutesSinceMidnight = (d) => (d.getHours() * 60) + d.getMinutes();
 
   function formatDateYYYYMMDD(d) {
     const y = d.getFullYear();
@@ -549,23 +577,27 @@
       const end = formatDateYYYYMMDD(weekEnd) + 'T23:59:59';
       const reservations = await API.getReservationsByLab(labId, start, end);
 
-      const byDayHour = new Map();
+      const byDaySlot = new Map();
       reservations.forEach((r) => {
         const startDt = new Date(r.start_time);
         const endDt = new Date(r.end_time);
         if (isNaN(startDt.getTime()) || isNaN(endDt.getTime())) return;
 
         const cursor = new Date(startDt);
-        cursor.setMinutes(0, 0, 0);
+        // Align to slot boundary (45-min)
+        const startMin = minutesSinceMidnight(cursor);
+        const alignedStartMin = floorMinutesToSlot(startMin);
+        cursor.setHours(0, 0, 0, 0);
+        cursor.setMinutes(alignedStartMin, 0, 0);
+
         while (cursor < endDt) {
           const dayKey = formatDateYYYYMMDD(cursor);
-          const hour = cursor.getHours();
-          if (HOURS.includes(hour)) {
-            const key = `${dayKey}|${hour}`;
-            // Keep the first reservation for that slot (conflicts shouldn't occur)
-            if (!byDayHour.has(key)) byDayHour.set(key, r);
+          const slotMin = minutesSinceMidnight(cursor);
+          if (slotMin >= CAL_START_MIN && slotMin < CAL_END_MIN) {
+            const key = `${dayKey}|${slotMin}`;
+            if (!byDaySlot.has(key)) byDaySlot.set(key, r);
           }
-          cursor.setHours(cursor.getHours() + 1);
+          cursor.setMinutes(cursor.getMinutes() + CAL_SLOT_MIN);
         }
       });
 
@@ -577,16 +609,15 @@
         if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
         return (h * 60) + m;
       };
-      const getBlockedEntryForHour = (dateObj, hour) => {
+      const getBlockedEntryForSlot = (dateObj, slotMin) => {
         if (!blockedSchedule || blockedSchedule.length === 0) return null;
         const dow = toDayOfWeek(dateObj);
-        const hourMin = hour * 60;
         for (const entry of blockedSchedule) {
           if (!entry || entry.day_of_week !== dow) continue;
           const startMin = timeToMinutes(entry.start);
           const endMin = timeToMinutes(entry.end);
           if (startMin === null || endMin === null) continue;
-          if (hourMin >= startMin && hourMin < endMin) return entry;
+          if (slotMin >= startMin && slotMin < endMin) return entry;
         }
         return null;
       };
@@ -606,44 +637,51 @@
         </thead>
       `;
 
-      const tbodyRows = HOURS
-        .map((hour) => {
-          const timeStr = `${String(hour).padStart(2, '0')}:00`;
-          const cells = weekDays
-            .map((d) => {
-              const dayKey = formatDateYYYYMMDD(d);
-              const r = byDayHour.get(`${dayKey}|${hour}`);
+      let tbodyRows = '';
+      for (let i = 0; i < SLOTS.length; i++) {
+        const slotMin = SLOTS[i];
+        const timeStr = formatTimeFromMinutes(slotMin);
 
-              if (!r) {
-                const blockedEntry = getBlockedEntryForHour(d, hour);
-                if (blockedEntry) {
-                  const className = (blockedEntry.name || '').trim() || 'Clase';
-                  const safeName = className.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                  return `<td class="calendar-cell calendar-cell--blocked" aria-label="${dayKey} ${timeStr} ${safeName}"><div class="calendar-cell__main">${safeName}</div></td>`;
-                }
-                return `<td class="calendar-cell calendar-cell--available" aria-label="${dayKey} ${timeStr} disponible"></td>`;
+        const cells = weekDays
+          .map((d) => {
+            const dayKey = formatDateYYYYMMDD(d);
+            const r = byDaySlot.get(`${dayKey}|${slotMin}`);
+
+            if (!r) {
+              const blockedEntry = getBlockedEntryForSlot(d, slotMin);
+              if (blockedEntry) {
+                const className = (blockedEntry.name || '').trim() || 'Clase';
+                const safeName = className.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<td class="calendar-cell calendar-cell--blocked" aria-label="${dayKey} ${timeStr} ${safeName}"><div class="calendar-cell__main">${safeName}</div></td>`;
               }
+              return `<td class="calendar-cell calendar-cell--available" aria-label="${dayKey} ${timeStr} disponible"></td>`;
+            }
 
-              const isPending = r.status === 'pending';
-              const cls = isPending ? 'calendar-cell--pending' : 'calendar-cell--occupied';
-              const who = (r.user_name || 'Reservado');
-              const statusText = isPending ? 'Pendiente' : 'Reservado';
-              return `
-                <td class="calendar-cell ${cls}" aria-label="${dayKey} ${timeStr} ${statusText}">
-                  <div class="calendar-cell__main">${who}</div>
-                </td>
-              `;
-            })
-            .join('');
+            const isPending = r.status === 'pending';
+            const cls = isPending ? 'calendar-cell--pending' : 'calendar-cell--occupied';
+            const who = (r.user_name || 'Reservado');
+            const statusText = isPending ? 'Pendiente' : 'Reservado';
+            return `
+              <td class="calendar-cell ${cls}" aria-label="${dayKey} ${timeStr} ${statusText}">
+                <div class="calendar-cell__main">${who}</div>
+              </td>
+            `;
+          })
+          .join('');
 
-          return `
-            <tr>
-              <th class="calendar-table__time" scope="row">${timeStr}</th>
-              ${cells}
-            </tr>
-          `;
-        })
-        .join('');
+        // Time label: one academic block per row (45 minutes)
+        const startMin = slotMin;
+        const endMin = startMin + CAL_SLOT_MIN;
+        const label = `${formatTimeFromMinutes(startMin)} - ${formatTimeFromMinutes(endMin)}`;
+        const timeHeader = `<th class="calendar-table__time" scope="row">${label}</th>`;
+
+        tbodyRows += `
+          <tr>
+            ${timeHeader}
+            ${cells}
+          </tr>
+        `;
+      }
 
       grid.innerHTML = `
         <table class="calendar-table" role="grid">
@@ -665,6 +703,7 @@
 
     if (!labId) {
       container.innerHTML = '<p class="items-selector__hint">Selecciona un laboratorio para ver materiales disponibles</p>';
+      scheduleReserveAvailabilityCheck();
       return;
     }
 
@@ -695,8 +734,148 @@
           if (this.checked) qtyInput.focus();
         });
       });
+
+      scheduleReserveAvailabilityCheck();
     } catch (err) {
       container.innerHTML = `<p class="items-selector__hint">${getFriendlyErrorMessage(err)}</p>`;
+      scheduleReserveAvailabilityCheck();
+    }
+  }
+
+  // --- Live Reserve Availability ---
+  let reserveCheckTimer = null;
+  let reserveCheckSeq = 0;
+
+  function getReserveSubmitButton() {
+    return document.querySelector('#reserveForm button[type="submit"]');
+  }
+
+  function setReserveSubmitEnabled(enabled) {
+    const btn = getReserveSubmitButton();
+    if (!btn) return;
+    btn.disabled = !enabled;
+  }
+
+  function parseLocalDateTime(date, time) {
+    if (!date || !time) return null;
+    const dt = new Date(`${date}T${time}:00`);
+    if (isNaN(dt.getTime())) return null;
+    return dt;
+  }
+
+  function isBlockedBySchedule(blockedSchedule, startDt, endDt) {
+    if (!Array.isArray(blockedSchedule) || blockedSchedule.length === 0) return false;
+    if (!(endDt > startDt)) return false;
+
+    const toDayOfWeek = (d) => ((d.getDay() + 6) % 7) + 1; // Mon=1..Sun=7
+    const minutesOfDay = (d) => (d.getHours() * 60) + d.getMinutes();
+    const dow = toDayOfWeek(startDt);
+    const segStartMin = minutesOfDay(startDt);
+    const segEndMin = minutesOfDay(endDt);
+
+    for (const entry of blockedSchedule) {
+      if (!entry || entry.day_of_week !== dow) continue;
+      const [sh, sm] = String(entry.start).split(':').map((n) => parseInt(n, 10));
+      const [eh, em] = String(entry.end).split(':').map((n) => parseInt(n, 10));
+      const blockStartMin = (sh * 60) + sm;
+      const blockEndMin = (eh * 60) + em;
+      const overlaps = segStartMin < blockEndMin && segEndMin > blockStartMin;
+      if (overlaps) return true;
+    }
+    return false;
+  }
+
+  function scheduleReserveAvailabilityCheck() {
+    clearTimeout(reserveCheckTimer);
+    reserveCheckTimer = setTimeout(() => {
+      checkReserveAvailabilityLive();
+    }, 250);
+  }
+
+  async function checkReserveAvailabilityLive() {
+    const seq = ++reserveCheckSeq;
+
+    const labId = $('#reserveLab')?.value;
+    const date = $('#reserveDate')?.value;
+    const startTime = $('#reserveStartTime')?.value;
+    const endTime = $('#reserveEndTime')?.value;
+
+    // If incomplete, don't block submission.
+    if (!labId || !date || !startTime || !endTime) {
+      setFormMessage('reserveFormMessage', '', { sticky: true });
+      setReserveSubmitEnabled(true);
+      return true;
+    }
+
+    const startDt = parseLocalDateTime(date, startTime);
+    const endDt = parseLocalDateTime(date, endTime);
+    if (!startDt || !endDt) {
+      setFormMessage('reserveFormMessage', 'Revisa la fecha y las horas.', { sticky: true });
+      setReserveSubmitEnabled(false);
+      return false;
+    }
+
+    if (!(endDt > startDt)) {
+      setFormMessage('reserveFormMessage', 'La hora de fin debe ser mayor que la hora de inicio.', { sticky: true });
+      setReserveSubmitEnabled(false);
+      return false;
+    }
+
+    if (startDt <= new Date()) {
+      setFormMessage('reserveFormMessage', 'No se pueden hacer reservas en fechas pasadas. Elige una fecha futura.', { sticky: true });
+      setReserveSubmitEnabled(false);
+      return false;
+    }
+
+    const lab = (Array.isArray(labs) ? labs : []).find((l) => String(l.id) === String(labId));
+    if (lab && lab.status === 'maintenance') {
+      setFormMessage('reserveFormMessage', 'Este laboratorio está en mantenimiento. Elige otro laboratorio.', { sticky: true });
+      setReserveSubmitEnabled(false);
+      return false;
+    }
+
+    if (lab && isBlockedBySchedule(lab.blocked_schedule, startDt, endDt)) {
+      setFormMessage('reserveFormMessage', 'Ese horario no se puede reservar porque el laboratorio está ocupado por clases.', { sticky: true });
+      setReserveSubmitEnabled(false);
+      return false;
+    }
+
+    // Check overlap with existing approved/pending reservations (API endpoint already filters those).
+    try {
+      const dayStart = `${date}T00:00:00`;
+      const dayEnd = `${date}T23:59:59`;
+      const existing = await API.getReservationsByLab(labId, dayStart, dayEnd);
+      // Ignore stale results if user changed inputs quickly.
+      if (seq !== reserveCheckSeq) return false;
+
+      const hasOverlap = Array.isArray(existing) && existing.some((r) => {
+        const rs = new Date(r.start_time);
+        const re = new Date(r.end_time);
+        if (isNaN(rs.getTime()) || isNaN(re.getTime())) return false;
+        return rs < endDt && re > startDt;
+      });
+
+      if (hasOverlap) {
+        setFormMessage('reserveFormMessage', 'Ese laboratorio ya está reservado en ese horario. Elige otra hora o fecha.', { sticky: true });
+        setReserveSubmitEnabled(false);
+        return false;
+      }
+
+      setFormMessage('reserveFormMessage', '', { sticky: true });
+      setReserveSubmitEnabled(true);
+      return true;
+    } catch (err) {
+      // If we can't validate (network/auth), don't hard-block.
+      const status = err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401 || status === 403) {
+        setFormMessage('reserveFormMessage', 'Tu sesión expiró. Inicia sesión nuevamente.', { sticky: true });
+        setReserveSubmitEnabled(false);
+        return false;
+      }
+
+      setFormMessage('reserveFormMessage', '', { sticky: true });
+      setReserveSubmitEnabled(true);
+      return true;
     }
   }
 
@@ -717,6 +896,10 @@
       else if (!endTime) $('#reserveEndTime')?.focus();
       return;
     }
+
+    // Live guard: if invalid, stop here (message already shown)
+    const ok = await checkReserveAvailabilityLive();
+    if (!ok) return;
 
     const startDateTime = `${date}T${startTime}:00`;
     const endDateTime = `${date}T${endTime}:00`;
@@ -941,6 +1124,12 @@
   let labEditorMode = 'create';
   let labEditorId = null;
 
+  // Blocked schedule editor state (pagination)
+  const SCHEDULE_PAGE_SIZE = 5;
+  let labScheduleDraft = [];
+  let labSchedulePage = 1;
+  let labScheduleErrorIndices = new Set();
+
   function resetLabEditorMessage() {
     setFormMessage('labEditorMessage', '');
   }
@@ -953,7 +1142,7 @@
     document.getElementById('labEditorName').value = '';
     document.getElementById('labEditorLocation').value = '';
     document.getElementById('labEditorCapacity').value = '';
-    renderScheduleRows([]);
+    setLabScheduleDraft([]);
   }
 
   function prepareLabEditorEditFromLab(lab) {
@@ -964,7 +1153,7 @@
     document.getElementById('labEditorName').value = lab.name || '';
     document.getElementById('labEditorLocation').value = lab.location || '';
     document.getElementById('labEditorCapacity').value = String(lab.capacity ?? '');
-    renderScheduleRows(Array.isArray(lab.blocked_schedule) ? lab.blocked_schedule : []);
+    setLabScheduleDraft(Array.isArray(lab.blocked_schedule) ? lab.blocked_schedule : []);
   }
 
   async function loadLabEditorFromId(labId) {
@@ -995,68 +1184,88 @@
     return (parseInt(m[1], 10) * 60) + parseInt(m[2], 10);
   }
 
-  function getScheduleFromEditor() {
-    const rows = Array.from(document.querySelectorAll('#labScheduleList .lab-schedule-row'));
-    const schedule = [];
-    for (const row of rows) {
-      const day = parseInt(row.querySelector('[data-field="day"]')?.value, 10);
-      const className = (row.querySelector('[data-field="name"]')?.value || '').trim();
-      const start = row.querySelector('[data-field="start"]')?.value;
-      const end = row.querySelector('[data-field="end"]')?.value;
-      if (!day || !start || !end) {
-        const err = new Error('Completa Día, Inicio y Fin en los horarios de clases.');
-        err.code = 'schedule_incomplete';
-        throw err;
-      }
-      const sMin = parseHHMMToMinutes(start);
-      const eMin = parseHHMMToMinutes(end);
-      if (sMin === null || eMin === null || !(eMin > sMin)) {
-        const err = new Error('Revisa los horarios: la hora fin debe ser mayor que la hora inicio.');
-        err.code = 'schedule_invalid';
-        throw err;
-      }
-      schedule.push({ day_of_week: day, start, end, name: className });
-    }
-
-    // prevent overlaps for same day
-    const byDay = new Map();
-    for (const entry of schedule) {
-      if (!byDay.has(entry.day_of_week)) byDay.set(entry.day_of_week, []);
-      byDay.get(entry.day_of_week).push(entry);
-    }
-    for (const [day, entries] of byDay.entries()) {
-      const sorted = entries
-        .map((e) => ({ ...e, s: parseHHMMToMinutes(e.start), t: parseHHMMToMinutes(e.end) }))
-        .sort((a, b) => a.s - b.s);
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i].s < sorted[i - 1].t) {
-          const label = LAB_DAYS.find((d) => d.value === day)?.label || 'Ese día';
-          const err = new Error(`Hay horarios de clases que se traslapan en ${label}.`);
-          err.code = 'schedule_overlap';
-          throw err;
-        }
-      }
-    }
-
-    return schedule;
+  function clearScheduleRowErrors() {
+    labScheduleErrorIndices = new Set();
   }
 
-  function renderScheduleRows(schedule = []) {
+  function ensureScheduleHeader() {
     const list = document.getElementById('labScheduleList');
     if (!list) return;
-    const rows = Array.isArray(schedule) ? schedule : [];
-    if (rows.length === 0) {
+    if (list.querySelector('.lab-schedule-header')) return;
+    list.insertAdjacentHTML(
+      'afterbegin',
+      `
+        <div class="lab-schedule-header" aria-hidden="true">
+          <div>Día</div>
+          <div>Clase</div>
+          <div>Inicio</div>
+          <div>Fin</div>
+          <div></div>
+        </div>
+      `
+    );
+  }
+
+  function focusScheduleRow(index, preferredField = 'name') {
+    const row = document.querySelector(`#labScheduleList .lab-schedule-row[data-index="${index}"]`);
+    if (!row) return;
+    const order = [preferredField, 'day', 'start', 'end', 'name'];
+    for (const f of order) {
+      const el = row.querySelector(`[data-field="${f}"]`);
+      if (el && typeof el.focus === 'function') {
+        el.focus();
+        return;
+      }
+    }
+  }
+
+  function normalizeScheduleEntry(entry) {
+    const day = parseInt(entry?.day_of_week, 10);
+    return {
+      day_of_week: Number.isFinite(day) && day >= 1 && day <= 7 ? day : 1,
+      name: (entry?.name || '').toString(),
+      start: (entry?.start || '07:00').toString(),
+      end: (entry?.end || '08:00').toString(),
+    };
+  }
+
+  function getScheduleTotalPages() {
+    return Math.max(1, Math.ceil(labScheduleDraft.length / SCHEDULE_PAGE_SIZE));
+  }
+
+  function setLabScheduleDraft(entries) {
+    labScheduleDraft = Array.isArray(entries) ? entries.map(normalizeScheduleEntry) : [];
+    labSchedulePage = 1;
+    clearScheduleRowErrors();
+    renderSchedulePage();
+  }
+
+  function renderSchedulePage() {
+    const list = document.getElementById('labScheduleList');
+    if (!list) return;
+
+    if (!Array.isArray(labScheduleDraft) || labScheduleDraft.length === 0) {
       list.innerHTML = '<div class="items-selector__hint">Sin horarios bloqueados. Agrega si el laboratorio tiene clases.</div>';
       return;
     }
 
-    const rowHtml = (entry, idx) => {
+    const totalPages = getScheduleTotalPages();
+    labSchedulePage = Math.min(Math.max(1, labSchedulePage), totalPages);
+
+    const startIdx = (labSchedulePage - 1) * SCHEDULE_PAGE_SIZE;
+    const pageEntries = labScheduleDraft.slice(startIdx, startIdx + SCHEDULE_PAGE_SIZE);
+
+    list.innerHTML = '';
+    ensureScheduleHeader();
+
+    const rowHtml = (entry, globalIdx) => {
       const dayVal = entry.day_of_week;
       const nameVal = (entry.name || '').replace(/"/g, '&quot;');
       const startVal = entry.start || '07:00';
       const endVal = entry.end || '08:00';
+      const hasError = labScheduleErrorIndices.has(globalIdx);
       return `
-        <div class="lab-schedule-row" data-idx="${idx}">
+        <div class="lab-schedule-row ${hasError ? 'lab-schedule-row--error' : ''}" data-index="${globalIdx}">
           <select class="form-select lab-schedule-row__day" data-field="day">
             ${LAB_DAYS.map((d) => `<option value="${d.value}" ${d.value === dayVal ? 'selected' : ''}>${d.label}</option>`).join('')}
           </select>
@@ -1068,33 +1277,105 @@
       `;
     };
 
-    list.innerHTML = rows.map((entry, idx) => rowHtml(entry, idx)).join('');
-  }
+    list.insertAdjacentHTML(
+      'beforeend',
+      pageEntries.map((entry, offset) => rowHtml(entry, startIdx + offset)).join('')
+    );
 
-  function addEmptyScheduleRow() {
-    const list = document.getElementById('labScheduleList');
-    if (!list) return;
-
-    const hint = list.querySelector('.items-selector__hint');
-    if (hint) {
-      list.innerHTML = '';
-    }
-
-    const idx = list.querySelectorAll('.lab-schedule-row').length;
+    const prevDisabled = labSchedulePage <= 1;
+    const nextDisabled = labSchedulePage >= totalPages;
     list.insertAdjacentHTML(
       'beforeend',
       `
-        <div class="lab-schedule-row" data-idx="${idx}">
-          <select class="form-select lab-schedule-row__day" data-field="day">
-            ${LAB_DAYS.map((d) => `<option value="${d.value}">${d.label}</option>`).join('')}
-          </select>
-          <input class="form-input lab-schedule-row__name" type="text" maxlength="120" data-field="name" value="" placeholder="Nombre de la clase (opcional)">
-          <input class="form-input lab-schedule-row__time" type="time" step="900" data-field="start" value="07:00">
-          <input class="form-input lab-schedule-row__time" type="time" step="900" data-field="end" value="08:00">
-          <button class="btn btn--danger btn--sm" type="button" data-action="remove-schedule" aria-label="Eliminar horario">Eliminar</button>
+        <div class="lab-schedule-pager" aria-label="Paginación de horarios">
+          <button class="btn btn--outline btn--sm" type="button" data-action="schedule-prev" ${prevDisabled ? 'disabled' : ''}>Anterior</button>
+          <div class="lab-schedule-pager__text">Página ${labSchedulePage} de ${totalPages}</div>
+          <button class="btn btn--outline btn--sm" type="button" data-action="schedule-next" ${nextDisabled ? 'disabled' : ''}>Siguiente</button>
         </div>
       `
     );
+  }
+
+  function getScheduleFromEditor() {
+    const schedule = [];
+    clearScheduleRowErrors();
+
+    // Basic validation
+    for (let i = 0; i < labScheduleDraft.length; i++) {
+      const entry = normalizeScheduleEntry(labScheduleDraft[i]);
+      const day = parseInt(entry.day_of_week, 10);
+      const start = entry.start;
+      const end = entry.end;
+      const className = (entry.name || '').trim();
+
+      if (!day || !start || !end) {
+        labScheduleErrorIndices.add(i);
+        labSchedulePage = Math.floor(i / SCHEDULE_PAGE_SIZE) + 1;
+        renderSchedulePage();
+        focusScheduleRow(i, !day ? 'day' : (!start ? 'start' : 'end'));
+        const err = new Error('Completa Día, Inicio y Fin en los horarios de clases.');
+        err.code = 'schedule_incomplete';
+        throw err;
+      }
+
+      const sMin = parseHHMMToMinutes(start);
+      const eMin = parseHHMMToMinutes(end);
+      if (sMin === null || eMin === null || !(eMin > sMin)) {
+        labScheduleErrorIndices.add(i);
+        labSchedulePage = Math.floor(i / SCHEDULE_PAGE_SIZE) + 1;
+        renderSchedulePage();
+        focusScheduleRow(i, 'end');
+        const err = new Error('Revisa los horarios: la hora fin debe ser mayor que la hora inicio.');
+        err.code = 'schedule_invalid';
+        throw err;
+      }
+
+      schedule.push({ day_of_week: day, start, end, name: className });
+    }
+
+    // prevent overlaps for same day (and highlight all entries for that day)
+    const byDay = new Map();
+    for (let i = 0; i < schedule.length; i++) {
+      const entry = schedule[i];
+      if (!byDay.has(entry.day_of_week)) byDay.set(entry.day_of_week, []);
+      byDay.get(entry.day_of_week).push({ idx: i, ...entry, s: parseHHMMToMinutes(entry.start), t: parseHHMMToMinutes(entry.end) });
+    }
+
+    for (const [day, entries] of byDay.entries()) {
+      const sorted = entries.slice().sort((a, b) => a.s - b.s);
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i].s < sorted[i - 1].t) {
+          // mark all rows for the conflicting day
+          entries.forEach((e) => labScheduleErrorIndices.add(e.idx));
+
+          const firstIdx = Math.min(...entries.map((e) => e.idx));
+          labSchedulePage = Math.floor(firstIdx / SCHEDULE_PAGE_SIZE) + 1;
+          renderSchedulePage();
+          focusScheduleRow(firstIdx, 'start');
+
+          const label = LAB_DAYS.find((d) => d.value === day)?.label || 'Ese día';
+          const err = new Error(`Hay horarios de clases que se traslapan en ${label}.`);
+          err.code = 'schedule_overlap';
+          throw err;
+        }
+      }
+    }
+
+    return schedule;
+  }
+
+  function addEmptyScheduleRow() {
+    resetLabEditorMessage();
+    clearScheduleRowErrors();
+
+    // Insert new schedule first
+    labScheduleDraft.unshift(normalizeScheduleEntry({ day_of_week: 1, start: '07:00', end: '08:00', name: '' }));
+    labSchedulePage = 1;
+    renderSchedulePage();
+
+    // Focus name of the first row (new entry)
+    const firstRow = document.querySelector('#labScheduleList .lab-schedule-row[data-index="0"]');
+    firstRow?.querySelector('[data-field="name"]')?.focus?.();
   }
 
   function openLabEditorCreate() {
@@ -1227,15 +1508,69 @@
     });
 
     $('#labScheduleList')?.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action="remove-schedule"]');
-      if (!btn) return;
-      const row = btn.closest('.lab-schedule-row');
-      if (!row) return;
-      row.remove();
-      // If none remain, render the hint state
-      const remaining = document.querySelectorAll('#labScheduleList .lab-schedule-row').length;
-      if (remaining === 0) renderScheduleRows([]);
+      const actionBtn = e.target.closest('[data-action]');
+      if (!actionBtn) return;
+      const action = actionBtn.dataset.action;
+
+      if (action === 'schedule-prev') {
+        if (labSchedulePage > 1) {
+          labSchedulePage -= 1;
+          renderSchedulePage();
+        }
+        return;
+      }
+
+      if (action === 'schedule-next') {
+        const totalPages = getScheduleTotalPages();
+        if (labSchedulePage < totalPages) {
+          labSchedulePage += 1;
+          renderSchedulePage();
+        }
+        return;
+      }
+
+      if (action === 'remove-schedule') {
+        const row = actionBtn.closest('.lab-schedule-row');
+        if (!row) return;
+        const index = parseInt(row.dataset.index, 10);
+        if (!Number.isFinite(index) || index < 0 || index >= labScheduleDraft.length) return;
+
+        labScheduleDraft.splice(index, 1);
+        clearScheduleRowErrors();
+
+        // keep page in range after removal
+        const totalPages = getScheduleTotalPages();
+        labSchedulePage = Math.min(labSchedulePage, totalPages);
+        renderSchedulePage();
+      }
     });
+
+    const onScheduleFieldChange = (e) => {
+      const fieldEl = e.target.closest('[data-field]');
+      const row = e.target.closest('.lab-schedule-row');
+      if (!fieldEl || !row) return;
+
+      const index = parseInt(row.dataset.index, 10);
+      if (!Number.isFinite(index) || index < 0 || index >= labScheduleDraft.length) return;
+
+      const field = fieldEl.dataset.field;
+      const value = fieldEl.value;
+
+      const entry = labScheduleDraft[index] || normalizeScheduleEntry({});
+      if (field === 'day') entry.day_of_week = parseInt(value, 10) || 1;
+      if (field === 'name') entry.name = String(value || '');
+      if (field === 'start') entry.start = String(value || '');
+      if (field === 'end') entry.end = String(value || '');
+
+      labScheduleDraft[index] = entry;
+      if (labScheduleErrorIndices.has(index)) {
+        labScheduleErrorIndices.delete(index);
+        row.classList.remove('lab-schedule-row--error');
+      }
+    };
+
+    $('#labScheduleList')?.addEventListener('change', onScheduleFieldChange);
+    $('#labScheduleList')?.addEventListener('input', onScheduleFieldChange);
 
     $('#labEditorForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1458,6 +1793,12 @@
     $('#loadCalendarBtn').addEventListener('click', loadCalendar);
     $('#reserveLab').addEventListener('change', onLabChangeForReserve);
     $('#reserveForm').addEventListener('submit', handleReserve);
+    $('#reserveDate')?.addEventListener('change', scheduleReserveAvailabilityCheck);
+    $('#reserveStartTime')?.addEventListener('change', scheduleReserveAvailabilityCheck);
+    $('#reserveEndTime')?.addEventListener('change', scheduleReserveAvailabilityCheck);
+    $('#reserveStartTime')?.addEventListener('input', scheduleReserveAvailabilityCheck);
+    $('#reserveEndTime')?.addEventListener('input', scheduleReserveAvailabilityCheck);
+    $('#reserveDate')?.addEventListener('input', scheduleReserveAvailabilityCheck);
 
     $('#itemLabSelect')?.addEventListener('change', loadAdminItems);
 
@@ -1469,6 +1810,10 @@
     const dateStr = tomorrow.toISOString().split('T')[0];
     $('#reserveDate').value = dateStr;
     $('#reserveDate').min = dateStr;
+
+    // Ensure initial state
+    setReserveSubmitEnabled(true);
+    scheduleReserveAvailabilityCheck();
 
 
     // Set default report month/year

@@ -54,6 +54,11 @@ html.theme-dark body {
   color: var(--color-gray-100);
 }
 
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .layout {
   min-height: 100vh;
   display: flex;
@@ -590,6 +595,7 @@ html.theme-dark .header--sidebar .btn--outline:hover {
   color: var(--color-gray-600);
   font-weight: 700;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .calendar-cell {
@@ -958,34 +964,92 @@ html.theme-dark .calendar-cell--blocked {
   margin-bottom: 0.75rem;
 }
 
-.lab-schedule-row {
-  display: flex;
+.lab-schedule-header {
+  display: grid;
+  grid-template-columns: 140px 1fr 120px 120px auto;
   gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+  padding: 0 0.25rem;
+}
+
+.lab-schedule-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 120px 120px auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.lab-schedule-row--error {
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .lab-schedule-row .form-select,
 .lab-schedule-row .form-input {
-  height: 40px;
+  height: 36px;
 }
 
 .lab-schedule-row__day {
-  min-width: 160px;
+  min-width: 0;
 }
 
 .lab-schedule-row__name {
-  min-width: 220px;
-  flex: 1;
+  min-width: 0;
 }
 
 .lab-schedule-row__time {
-  min-width: 120px;
+  min-width: 0;
+}
+
+.lab-schedule-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem;
+}
+
+.lab-schedule-pager__text {
+  color: var(--color-gray-500);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 720px) {
+  .lab-schedule-header {
+    display: none;
+  }
+
+  .lab-schedule-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .lab-schedule-row__day {
+    min-width: 160px;
+  }
+
+  .lab-schedule-row__name {
+    min-width: 220px;
+    flex: 1;
+  }
+
+  .lab-schedule-row__time {
+    min-width: 120px;
+  }
 }
 
 html.theme-dark .lab-editor {
   background: var(--color-gray-900);
   border-color: var(--color-gray-700);
+}
+
+html.theme-dark .lab-schedule-row--error {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.6);
 }
 
 html.theme-dark .form-label {

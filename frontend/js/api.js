@@ -93,7 +93,10 @@ const API = {
   getMyReservations() { return this.get('/reservations/my'); },
   getReservation(id) { return this.get(`/reservations/${id}`); },
   getReservationsByLab(labId, startDate, endDate) {
-    return this.get(`/reservations/lab/${labId}?start_date=${startDate}&end_date=${endDate}`);
+    const qs = new URLSearchParams();
+    qs.set('start_date', startDate);
+    qs.set('end_date', endDate);
+    return this.get(`/reservations/lab/${encodeURIComponent(labId)}?${qs.toString()}`);
   },
   createReservation(data) { return this.post('/reservations', data); },
   approveReservation(id, status) { return this.patch(`/reservations/${id}/approve`, { status }); },
