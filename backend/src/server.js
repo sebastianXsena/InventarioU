@@ -10,6 +10,8 @@ const userRoutes = require('./routes/userRoutes');
 const labRoutes = require('./routes/labRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const facultyRoutes = require('./routes/facultyRoutes');
+const programRoutes = require('./routes/programRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +44,8 @@ app.use('/api/auth', userRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/faculties', facultyRoutes);
+app.use('/api/programs', programRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));

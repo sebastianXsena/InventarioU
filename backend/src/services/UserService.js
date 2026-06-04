@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const userRepo = require('../repositories/userRepo');
 
 class UserService {
-  async register({ name, email, password, role = 'student' }) {
+  async register({ full_name, email, password, role = 'student', faculty_id, program_id, semester }) {
     const existing = await userRepo.findByEmail(email);
     if (existing) {
       const err = new Error('Email already registered');
@@ -12,7 +12,7 @@ class UserService {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await userRepo.create({ name, email, passwordHash, role });
+    const user = await userRepo.create({ full_name, email, passwordHash, role, faculty_id, program_id, semester });
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -46,7 +46,7 @@ class UserService {
 
     return {
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, full_name: user.full_name, email: user.email, role: user.role, faculty_id: user.faculty_id, program_id: user.program_id, semester: user.semester },
     };
   }
 

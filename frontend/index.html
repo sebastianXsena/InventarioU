@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,309 +18,373 @@
       }
     })();
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
-  <div class="layout">
-  <header class="header header--sidebar">
-    <div class="header__container">
-      <h1 class="header__logo">Reserva <span class="header__logo--accent">De Laboratorios</span></h1>
-      <nav class="nav" id="mainNav">
-        <ul class="nav__list">
-          <li class="nav__item nav__item--hidden" data-view="login">
-            <a href="#login" class="nav__link nav__link--active">Iniciar Sesion</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="calendar">
-            <a href="#calendar" class="nav__link">Calendario</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="reserve">
-            <a href="#reserve" class="nav__link">Nueva Reserva</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="my-reservations">
-            <a href="#my-reservations" class="nav__link">Mis Reservas</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="admin">
-            <a href="#admin" class="nav__link">Panel Admin</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="inventory">
-            <a href="#inventory" class="nav__link">Inventario</a>
-          </li>
-          <li class="nav__item nav__item--hidden" data-view="reports">
-            <a href="#reports" class="nav__link">Reportes</a>
-          </li>
-        </ul>
-        <div class="nav__actions">
-          <button class="btn btn--sm btn--outline" id="themeToggleBtn" type="button" style="display:none;">Modo oscuro</button>
-          <button class="btn btn--sm btn--outline" id="logoutBtn" style="display:none;">Cerrar Sesion</button>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <main class="main">
-    <section class="view" id="loginView">
-      <div class="auth-card">
-        <form class="auth-form" id="loginForm" novalidate>
-          <h2 class="auth-form__title">Iniciar Sesion</h2>
-          <div class="form-note form-note--error form-note--hidden" id="loginFormMessage" role="alert" aria-live="polite"></div>
-          <div class="form-group">
-            <label class="form-label" for="loginEmail">Email</label>
-            <input class="form-input" type="email" id="loginEmail" required placeholder="tu@email.com">
+  <div class="layout layout--auth">
+    <header class="header header--sidebar">
+      <div class="header__container">
+        <h1 class="header__logo">Reserva <span class="header__logo--accent">De Laboratorios</span></h1>
+        <nav class="nav" id="mainNav">
+          <ul class="nav__list">
+            <li class="nav__item nav__item--hidden" data-view="login">
+              <a href="#login" class="nav__link nav__link--active">Iniciar Sesion</a>
+            </li>
+            <li class="nav__item nav__item--hidden" data-view="calendar">
+              <a href="#calendar" class="nav__link"><i class="ph-duotone ph-calendar"></i> Calendario</a>
+            </li>
+            <li class="nav__item nav__item--hidden" data-view="reserve">
+              <a href="#reserve" class="nav__link"><i class="bi bi-calendar-plus-fill"></i> Nueva Reserva</a>
+            </li>
+            <li class="nav__item nav__item--hidden" data-view="my-reservations">
+              <a href="#my-reservations" class="nav__link"><i class="ph-duotone ph-list-checks"></i> Mis Reservas</a>
+            </li>
+            <li class="nav__item nav__item--hidden" data-view="admin">
+              <a href="#admin" class="nav__link" id="navAdmin"><i class="ph-duotone ph-gear"></i> Panel Admin</a>
+            </li>
+            <li class="nav__item nav__item--hidden" data-view="reports">
+              <a href="#reports" class="nav__link" id="navReports"><i class="ph-duotone ph-chart-bar"></i> Reportes</a>
+            </li>
+          </ul>
+          <div class="nav__actions">
+            <button class="btn btn--sm btn--outline" id="themeToggleBtn" type="button" style="display:none;">Modo
+              oscuro</button>
+            <button class="btn btn--sm btn--outline" id="logoutBtn" style="display:none;">Cerrar Sesion</button>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="loginPassword">Contraseña</label>
-            <input class="form-input" type="password" id="loginPassword" required placeholder="Tu contraseña">
-          </div>
-          <button class="btn btn--primary btn--full" type="submit">Ingresar</button>
-        </form>
+        </nav>
       </div>
-    </section>
+    </header>
 
-    <section class="view view--hidden" id="calendarView">
-      <div class="calendar-container">
-        <div class="calendar-header">
-          <h2 class="calendar-header__title">Disponibilidad de Laboratorios</h2>
-          <div class="calendar-header__controls">
-            <select class="form-select" id="calendarLabSelect">
-              <option value="">Seleccionar laboratorio</option>
-            </select>
-            <button class="btn btn--primary" id="loadCalendarBtn">Cargar</button>
+    <main class="main">
+      <section class="view" id="loginView">
+        <div class="auth-card">
+          <div class="auth-card__header">
+            <div class="auth-card__icon"><i class="ph-duotone ph-lock-key"></i></div>
+            <h2 class="auth-form__title">Bienvenido</h2>
+            <p class="auth-form__subtitle">Ingresa tus credenciales para acceder</p>
           </div>
+          <form class="auth-form" id="loginForm" novalidate>
+            <div class="form-note form-note--error form-note--hidden" id="loginFormMessage" role="alert"
+              aria-live="polite"></div>
+            <div class="form-group">
+              <label class="form-label" for="loginEmail">Email</label>
+              <div class="form-input-with-icon">
+                <i class="ph-duotone ph-envelope"></i>
+                <input class="form-input" type="email" id="loginEmail" required placeholder="tu@email.com">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Contraseña</label>
+              <div class="form-input-with-icon">
+                <i class="ph-duotone ph-password"></i>
+                <input class="form-input" type="password" id="loginPassword" required placeholder="••••••••">
+              </div>
+            </div>
+            <button class="btn btn--primary btn--full auth-btn" type="submit">Ingresar <i class="ph-duotone ph-arrow-right"></i></button>
+          </form>
         </div>
-        <div class="calendar-grid" id="calendarGrid"></div>
-      </div>
-    </section>
+      </section>
 
-    <section class="view view--hidden" id="reserveView">
-      <div class="reserve-container">
-        <h2 class="section-title">Nueva Reserva de Laboratorio</h2>
-        <form class="reserve-form" id="reserveForm" novalidate>
-          <div class="form-note form-note--error form-note--hidden" id="reserveFormMessage" role="alert" aria-live="polite"></div>
-          <div class="form-row">
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reserveLab">Laboratorio *</label>
-              <select class="form-select" id="reserveLab" required>
+      <section class="view view--hidden" id="calendarView">
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <h2 class="calendar-header__title">Disponibilidad de Laboratorios</h2>
+            <div class="calendar-header__controls">
+              <select class="form-select" id="calendarLabSelect">
                 <option value="">Seleccionar laboratorio</option>
               </select>
-            </div>
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reserveDate">Fecha *</label>
-              <input class="form-input" type="date" id="reserveDate" required>
+              <button class="btn btn--primary" id="loadCalendarBtn">Cargar</button>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reserveStartTime">Hora inicio *</label>
-              <input class="form-input" type="time" id="reserveStartTime" required>
-            </div>
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reserveEndTime">Hora fin *</label>
-              <input class="form-input" type="time" id="reserveEndTime" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Materiales requeridos</label>
-            <div class="items-selector" id="itemsSelector">
-              <p class="items-selector__hint">Selecciona un laboratorio para ver materiales disponibles</p>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="reserveNotes">Notas</label>
-            <textarea class="form-input form-input--textarea" id="reserveNotes" maxlength="500" placeholder="Motivo de la reserva, detalles adicionales..."></textarea>
-          </div>
-
-          <button class="btn btn--primary btn--lg" type="submit">Solicitar Reserva</button>
-        </form>
-      </div>
-    </section>
-
-    <section class="view view--hidden" id="my-reservationsView">
-      <div class="reservations-container">
-        <h2 class="section-title">Mis Reservas</h2>
-        <div class="reservations-list" id="myReservationsList"></div>
-      </div>
-    </section>
-
-    <section class="view view--hidden" id="adminView">
-      <div class="admin-container">
-        <h2 class="section-title">Panel de Administracion</h2>
-
-        <div class="admin-tabs">
-          <button class="admin-tab admin-tab--active" data-admin-tab="pending">Pendientes</button>
-          <button class="admin-tab" data-admin-tab="all">Todas las Reservas</button>
-          <button class="admin-tab" data-admin-tab="labs">Laboratorios</button>
-          <button class="admin-tab" data-admin-tab="items">Inventario</button>
+          <div class="calendar-grid" id="calendarGrid"></div>
         </div>
+      </section>
 
-        <div class="admin-panel" id="adminPending">
-          <h3 class="admin-panel__title">Solicitudes Pendientes</h3>
-          <div class="admin-list" id="pendingList"></div>
+      <section class="view view--hidden" id="reserveView">
+        <div class="reserve-container">
+          <h2 class="section-title">Nueva Reserva de Laboratorio</h2>
+          <form class="reserve-form" id="reserveForm" novalidate>
+            <div class="form-note form-note--error form-note--hidden" id="reserveFormMessage" role="alert"
+              aria-live="polite"></div>
+            <div class="form-row">
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reserveLab">Laboratorio *</label>
+                <select class="form-select" id="reserveLab" required>
+                  <option value="">Seleccionar laboratorio</option>
+                </select>
+              </div>
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reserveDate">Fecha *</label>
+                <input class="form-input" type="date" id="reserveDate" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reserveStartTime">Hora inicio *</label>
+                <input class="form-input" type="time" id="reserveStartTime" required>
+              </div>
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reserveEndTime">Hora fin *</label>
+                <input class="form-input" type="time" id="reserveEndTime" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Materiales requeridos</label>
+              <div class="items-selector" id="itemsSelector">
+                <p class="items-selector__hint">Selecciona un laboratorio para ver materiales disponibles</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="reserveNotes">Notas</label>
+              <textarea class="form-input form-input--textarea" id="reserveNotes" maxlength="500"
+                placeholder="Motivo de la reserva, detalles adicionales..."></textarea>
+            </div>
+
+            <button class="btn btn--primary btn--lg" type="submit">Solicitar Reserva</button>
+          </form>
         </div>
+      </section>
 
-        <div class="admin-panel admin-panel--hidden" id="adminAll">
-          <h3 class="admin-panel__title">Todas las Reservas</h3>
-          <div class="admin-list" id="allReservationsList"></div>
+      <section class="view view--hidden" id="my-reservationsView">
+        <div class="reservations-container">
+          <h2 class="section-title">Mis Reservas</h2>
+          <div class="reservations-list" id="myReservationsList"></div>
         </div>
+      </section>
 
-        <div class="admin-panel admin-panel--hidden" id="adminLabs">
-          <h3 class="admin-panel__title">Gestion de Laboratorios</h3>
-          <button class="btn btn--primary btn--sm" id="addLabBtn">+ Nuevo Laboratorio</button>
-          <div class="admin-list" id="adminLabsList"></div>
+      <section class="view view--hidden" id="adminView">
+        <div class="admin-container">
+          <h2 class="section-title">Panel de Administracion</h2>
 
-          <div class="modal" id="labModal">
-            <div class="modal__content">
-              <h3 class="modal__title" id="labModalTitle">Nuevo Laboratorio</h3>
-              <form class="modal-form" id="labForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="labFormMessage" role="alert" aria-live="polite"></div>
+          <div class="admin-tabs">
+            <button class="admin-tab admin-tab--active" data-admin-tab="pending"><i class="ph-duotone ph-clock"></i>
+              Pendientes</button>
+            <button class="admin-tab" data-admin-tab="all"><i class="ph-duotone ph-stack"></i> Todas las
+              Reservas</button>
+            <button class="admin-tab" data-admin-tab="labs"><i class="ph-duotone ph-flask"></i> Laboratorios</button>
+            <button class="admin-tab" data-admin-tab="items"><i class="ph-duotone ph-package"></i> Inventario</button>
+            <button class="admin-tab" data-admin-tab="faculties"><i class="ph-duotone ph-buildings"></i> Facultades</button>
+            <button class="admin-tab" data-admin-tab="programs"><i class="ph-duotone ph-books"></i> Programas</button>
+          </div>
+
+          <div class="admin-panel" id="adminPending">
+            <h3 class="admin-panel__title">Solicitudes Pendientes</h3>
+            <div class="admin-list" id="pendingList"></div>
+          </div>
+
+          <div class="admin-panel admin-panel--hidden" id="adminAll">
+            <h3 class="admin-panel__title">Todas las Reservas</h3>
+            <div class="admin-list" id="allReservationsList"></div>
+          </div>
+
+          <div class="admin-panel admin-panel--hidden" id="adminLabs">
+            <h3 class="admin-panel__title">Gestion de Laboratorios</h3>
+            <button class="btn btn--primary btn--sm" id="addLabBtn"><i class="bi bi-plus-circle"></i> Nuevo
+              Laboratorio</button>
+            <div class="admin-list" id="adminLabsList"></div>
+
+            <div class="modal" id="labModal">
+              <div class="modal__content">
+                <h3 class="modal__title" id="labModalTitle">Nuevo Laboratorio</h3>
+                <form class="modal-form" id="labForm" novalidate>
+                  <div class="form-note form-note--error form-note--hidden" id="labFormMessage" role="alert"
+                    aria-live="polite"></div>
+                  <div class="form-group">
+                    <label class="form-label" for="labName">Nombre</label>
+                    <input class="form-input" type="text" id="labName" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="labLocation">Ubicacion</label>
+                    <input class="form-input" type="text" id="labLocation" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="labCapacity">Capacidad</label>
+                    <input class="form-input" type="number" id="labCapacity" min="1" required>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="btn btn--secondary" type="button" id="closeLabModal">Cancelar</button>
+                    <button class="btn btn--primary" type="submit">Guardar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="admin-panel admin-panel--hidden" id="adminItems">
+            <h3 class="admin-panel__title">Gestion de Inventario</h3>
+            <button class="btn btn--primary btn--sm" id="addItemBtn" style="margin-bottom: 1.5rem;"><i
+                class="bi bi-plus-circle"></i> Nuevo Material</button>
+            <div class="admin-list" id="adminItemsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+          </div>
+
+          <div class="admin-panel admin-panel--hidden" id="adminFaculties">
+            <h3 class="admin-panel__title">Gestión de Facultades</h3>
+            <button class="btn btn--primary btn--sm" id="addFacultyBtn" style="margin-bottom: 1.5rem;"><i
+                class="bi bi-plus-circle"></i> Nueva Facultad</button>
+            <div class="admin-list" id="adminFacultiesList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+
+            <div class="modal" id="facultyModal">
+              <div class="modal__content">
+                <h3 class="modal__title" id="facultyModalTitle">Nueva Facultad</h3>
+                <form class="modal-form" id="facultyForm" novalidate>
+                  <div class="form-note form-note--error form-note--hidden" id="facultyFormMessage" role="alert" aria-live="polite"></div>
+                  <div class="form-group">
+                    <label class="form-label" for="facultyName">Nombre de la Facultad</label>
+                    <input class="form-input" type="text" id="facultyName" required>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="btn btn--secondary" type="button" id="closeFacultyModal">Cancelar</button>
+                    <button class="btn btn--primary" type="submit">Guardar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-panel admin-panel--hidden" id="adminPrograms">
+            <h3 class="admin-panel__title">Gestión de Programas</h3>
+            <button class="btn btn--primary btn--sm" id="addProgramBtn" style="margin-bottom: 1.5rem;"><i
+                class="bi bi-plus-circle"></i> Nuevo Programa</button>
+            <div class="admin-list" id="adminProgramsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+
+            <div class="modal" id="programModal">
+              <div class="modal__content">
+                <h3 class="modal__title" id="programModalTitle">Nuevo Programa</h3>
+                <form class="modal-form" id="programForm" novalidate>
+                  <div class="form-note form-note--error form-note--hidden" id="programFormMessage" role="alert" aria-live="polite"></div>
+                  <div class="form-group">
+                    <label class="form-label" for="programName">Nombre del Programa</label>
+                    <input class="form-input" type="text" id="programName" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="programFaculty">Facultad</label>
+                    <select class="form-select" id="programFaculty" required>
+                      <option value="">Seleccione una facultad</option>
+                    </select>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="btn btn--secondary" type="button" id="closeProgramModal">Cancelar</button>
+                    <button class="btn btn--primary" type="submit">Guardar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view view--hidden" id="labEditorView">
+        <div class="admin-container">
+          <div class="admin-panel">
+            <h2 class="section-title" id="labEditorPageTitle">Laboratorio</h2>
+            <div class="lab-editor">
+              <h4 class="admin-panel__title" id="labEditorTitle">Nuevo Laboratorio</h4>
+              <form class="modal-form" id="labEditorForm" novalidate>
+                <div class="form-note form-note--error form-note--hidden" id="labEditorMessage" role="alert"
+                  aria-live="polite"></div>
                 <div class="form-group">
-                  <label class="form-label" for="labName">Nombre</label>
-                  <input class="form-input" type="text" id="labName" required>
+                  <label class="form-label" for="labEditorName">Nombre</label>
+                  <input class="form-input" type="text" id="labEditorName" required>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="labLocation">Ubicacion</label>
-                  <input class="form-input" type="text" id="labLocation" required>
+                  <label class="form-label" for="labEditorLocation">Ubicacion</label>
+                  <input class="form-input" type="text" id="labEditorLocation" required>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="labCapacity">Capacidad</label>
-                  <input class="form-input" type="number" id="labCapacity" min="1" required>
+                  <label class="form-label" for="labEditorCapacity">Capacidad</label>
+                  <input class="form-input" type="number" id="labEditorCapacity" min="1" required>
                 </div>
+
+                <div class="form-group">
+                  <label class="form-label">Horarios no reservables (clases)</label>
+                  <div class="lab-schedule" id="labScheduleList"></div>
+                  <button class="btn btn--outline btn--sm" type="button" id="addScheduleRowBtn">+ Agregar
+                    horario</button>
+                </div>
+
                 <div class="modal-actions">
-                  <button class="btn btn--secondary" type="button" id="closeLabModal">Cancelar</button>
+                  <button class="btn btn--secondary" type="button" id="cancelLabEditorBtn">Volver</button>
                   <button class="btn btn--primary" type="submit">Guardar</button>
                 </div>
               </form>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="admin-panel admin-panel--hidden" id="adminItems">
-          <h3 class="admin-panel__title">Gestion de Inventario</h3>
-          <div class="form-row">
-            <div class="form-group form-group--col">
-              <label class="form-label" for="itemLabSelect">Laboratorio</label>
-              <select class="form-select" id="itemLabSelect">
-                <option value="">Seleccionar</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn btn--primary btn--sm" id="addItemBtn">+ Nuevo Material</button>
-          <div class="admin-list" id="adminItemsList"></div>
-
-          <div class="modal" id="itemModal">
-            <div class="modal__content">
-              <h3 class="modal__title" id="itemModalTitle">Nuevo Material</h3>
-              <form class="modal-form" id="itemForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="itemFormMessage" role="alert" aria-live="polite"></div>
+      <section class="view view--hidden" id="itemEditorView">
+        <div class="admin-container">
+          <div class="admin-panel">
+            <h2 class="section-title" id="itemEditorPageTitle">Material</h2>
+            <div class="lab-editor">
+              <h4 class="admin-panel__title" id="itemEditorTitle">Nuevo Material</h4>
+              <form class="modal-form" id="itemEditorForm" novalidate>
+                <div class="form-note form-note--error form-note--hidden" id="itemEditorMessage" role="alert"
+                  aria-live="polite"></div>
                 <div class="form-group">
-                  <label class="form-label" for="itemName">Nombre</label>
-                  <input class="form-input" type="text" id="itemName" required>
+                  <label class="form-label" for="itemEditorName">Nombre</label>
+                  <input class="form-input" type="text" id="itemEditorName" required>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="itemDescription">Descripcion</label>
-                  <input class="form-input" type="text" id="itemDescription">
+                  <label class="form-label" for="itemEditorDescription">Descripcion</label>
+                  <input class="form-input" type="text" id="itemEditorDescription">
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="itemStock">Stock Total</label>
-                  <input class="form-input" type="number" id="itemStock" min="0" required>
+                  <label class="form-label" for="itemEditorStock">Stock Total</label>
+                  <input class="form-input" type="number" id="itemEditorStock" min="0" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="itemEditorLab">Laboratorio</label>
+                  <select class="form-select" id="itemEditorLab" required>
+                    <option value="">Seleccionar laboratorio</option>
+                  </select>
                 </div>
                 <div class="modal-actions">
-                  <button class="btn btn--secondary" type="button" id="closeItemModal">Cancelar</button>
+                  <button class="btn btn--secondary" type="button" id="cancelItemEditorBtn">Volver</button>
                   <button class="btn btn--primary" type="submit">Guardar</button>
                 </div>
               </form>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="view view--hidden" id="inventoryView">
-      <div class="inventory-container">
-        <h2 class="section-title">Inventario de Materiales</h2>
-        <div class="inventory-stats" id="inventoryStats"></div>
-      </div>
-    </section>
-
-    <section class="view view--hidden" id="labEditorView">
-      <div class="admin-container">
-        <div class="admin-panel">
-          <h2 class="section-title" id="labEditorPageTitle">Laboratorio</h2>
-          <div class="lab-editor">
-            <h4 class="admin-panel__title" id="labEditorTitle">Nuevo Laboratorio</h4>
-            <form class="modal-form" id="labEditorForm" novalidate>
-              <div class="form-note form-note--error form-note--hidden" id="labEditorMessage" role="alert" aria-live="polite"></div>
-              <div class="form-group">
-                <label class="form-label" for="labEditorName">Nombre</label>
-                <input class="form-input" type="text" id="labEditorName" required>
+      <section class="view view--hidden" id="reportsView">
+        <div class="reports-container">
+          <h2 class="section-title">Reportes</h2>
+          <div class="reports-controls">
+            <div class="form-row">
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reportStartDate">Fecha inicial</label>
+                <input class="form-input" type="date" id="reportStartDate" required>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="labEditorLocation">Ubicacion</label>
-                <input class="form-input" type="text" id="labEditorLocation" required>
+              <div class="form-group form-group--col">
+                <label class="form-label" for="reportEndDate">Fecha final</label>
+                <input class="form-input" type="date" id="reportEndDate" required>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="labEditorCapacity">Capacidad</label>
-                <input class="form-input" type="number" id="labEditorCapacity" min="1" required>
+              <div class="form-group form-group--col form-group--align-end">
+                <button class="btn btn--primary" id="generateReportBtn">Generar Reporte</button>
               </div>
-
-              <div class="form-group">
-                <label class="form-label">Horarios no reservables (clases)</label>
-                <div class="lab-schedule" id="labScheduleList"></div>
-                <button class="btn btn--outline btn--sm" type="button" id="addScheduleRowBtn">+ Agregar horario</button>
-              </div>
-
-              <div class="modal-actions">
-                <button class="btn btn--secondary" type="button" id="cancelLabEditorBtn">Volver</button>
-                <button class="btn btn--primary" type="submit">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="view view--hidden" id="reportsView">
-      <div class="reports-container">
-        <h2 class="section-title">Reporte Mensual</h2>
-        <div class="reports-controls">
-          <div class="form-row">
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reportMonth">Mes</label>
-              <select class="form-select" id="reportMonth">
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
-              </select>
-            </div>
-            <div class="form-group form-group--col">
-              <label class="form-label" for="reportYear">Año</label>
-              <input class="form-input" type="number" id="reportYear" min="2020" max="2030" required>
-            </div>
-            <div class="form-group form-group--col form-group--align-end">
-              <button class="btn btn--primary" id="generateReportBtn">Generar Reporte</button>
             </div>
           </div>
+          <div class="report-content" id="reportContent"></div>
         </div>
-        <div class="report-content" id="reportContent"></div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
 
   </div>
 
 
 
-  <div class="modal" id="alertModal" role="dialog" aria-modal="true" aria-labelledby="alertModalTitle" aria-describedby="alertModalMessage">
+  <div class="modal" id="alertModal" role="dialog" aria-modal="true" aria-labelledby="alertModalTitle"
+    aria-describedby="alertModalMessage">
     <div class="modal__content">
       <h3 class="modal__title" id="alertModalTitle">Alerta</h3>
       <p id="alertModalMessage"></p>
@@ -329,7 +394,8 @@
     </div>
   </div>
 
-  <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalMessage">
+  <div class="modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle"
+    aria-describedby="confirmModalMessage">
     <div class="modal__content">
       <h3 class="modal__title" id="confirmModalTitle">Confirmar</h3>
       <p id="confirmModalMessage"></p>
@@ -340,7 +406,9 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
 </body>
+
 </html>

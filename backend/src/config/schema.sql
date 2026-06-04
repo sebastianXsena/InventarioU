@@ -9,14 +9,38 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- =============================================
+-- FACULTIES TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS faculties (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(200) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================
+-- PROGRAMS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS programs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(200) NOT NULL UNIQUE,
+    faculty_id UUID NOT NULL REFERENCES faculties(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================
 -- USERS TABLE
 -- =============================================
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(100) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'student')),
+    faculty_id UUID REFERENCES faculties(id) ON DELETE SET NULL,
+    program_id UUID REFERENCES programs(id) ON DELETE SET NULL,
+    semester INTEGER CHECK (semester > 0 AND semester <= 20),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -120,6 +144,12 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER trg_faculties_updated_at BEFORE UPDATE ON faculties
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_programs_updated_at BEFORE UPDATE ON programs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER trg_laboratories_updated_at BEFORE UPDATE ON laboratories
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -135,7 +165,7 @@ CREATE TRIGGER trg_reservations_updated_at BEFORE UPDATE ON reservations
 CREATE OR REPLACE VIEW v_monthly_report AS
 SELECT
     r.id AS reservation_id,
-    u.name AS user_name,
+    u.full_name AS user_name,
     u.email AS user_email,
     l.name AS lab_name,
     l.location AS lab_location,
@@ -159,7 +189,7 @@ JOIN users u ON r.user_id = u.id
 JOIN laboratories l ON r.lab_id = l.id
 LEFT JOIN reservation_items ri ON r.id = ri.reservation_id
 LEFT JOIN items i ON ri.item_id = i.id
-GROUP BY r.id, u.name, u.email, l.name, l.location, r.start_time, r.end_time, r.status, r.created_at;
+GROUP BY r.id, u.full_name, u.email, l.name, l.location, r.start_time, r.end_time, r.status, r.created_at;
 
 -- =============================================
 -- VIEW: Item Usage Statistics

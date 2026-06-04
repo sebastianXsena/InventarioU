@@ -5,6 +5,14 @@
   let currentUser = null;
   let labs = [];
   let items = [];
+  let faculties = [];
+  let programs = [];
+  let itemEditorMode = 'create';
+  let itemEditorId = null;
+  let facultyEditorMode = 'create';
+  let facultyEditorId = null;
+  let programEditorMode = 'create';
+  let programEditorId = null;
 
   // --- Theme ---
   const THEME_KEY = 'theme'; // 'system' | 'light' | 'dark'
@@ -332,24 +340,29 @@
     tab.classList.add('admin-tab--active');
 
     adminRoot.querySelectorAll('.admin-panel').forEach((p) => p.classList.add('admin-panel--hidden'));
-    const panels = { pending: '#adminPending', all: '#adminAll', labs: '#adminLabs', items: '#adminItems' };
-    $(panels[tabName]).classList.remove('admin-panel--hidden');
+    const panels = { pending: '#adminPending', all: '#adminAll', labs: '#adminLabs' };
+    const targetPanel = adminRoot.querySelector(panels[tabName]);
+    if (targetPanel) targetPanel.classList.remove('admin-panel--hidden');
   }
 
   function applyRoute(view, params = {}) {
     showView(view);
     if (view === 'calendar') loadCalendar();
     if (view === 'my-reservations') loadMyReservations();
-    if (view === 'inventory') loadInventory();
     if (view === 'admin') {
       // Default to labs when coming from editor
       selectAdminTab('labs');
       loadLabs();
     }
     if (view === 'labEditor') {
-      const labId = params && params.labId ? params.labId : null;
+      const labId = params && params.paramId ? params.paramId : null;
       if (labId) loadLabEditorFromId(labId);
       else prepareLabEditorCreate();
+    }
+    if (view === 'itemEditor') {
+      const itemId = params && params.paramId ? params.paramId : null;
+      if (itemId) loadItemEditorFromId(itemId);
+      else prepareItemEditorCreate();
     }
   }
 
@@ -367,7 +380,16 @@
     if (window.location.hash !== nextHash) {
       window.location.hash = nextHash;
     } else {
-      applyRoute('labEditor', { labId });
+      applyRoute('labEditor', { paramId: labId });
+    }
+  }
+
+  function navigateToItemEditor(itemId = null) {
+    const nextHash = itemId ? `#itemEditor/${itemId}` : '#itemEditor';
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+    } else {
+      applyRoute('itemEditor', { paramId: itemId });
     }
   }
 
@@ -384,7 +406,7 @@
     cleaned = cleaned.replace(/^\//, '');
     cleaned = cleaned.split('?')[0];
     const parts = cleaned.split('/').filter(Boolean);
-    return { view: parts[0] || null, labId: parts[1] || null };
+    return { view: parts[0] || null, paramId: parts[1] || null };
   }
 
   function routeOnLoadOrHashChange() {
@@ -399,13 +421,13 @@
       return;
     }
 
-    const allowed = new Set(['calendar', 'reserve', 'my-reservations', 'inventory', 'admin', 'reports', 'labEditor']);
+    const allowed = new Set(['calendar', 'reserve', 'my-reservations', 'inventory', 'admin', 'reports', 'labEditor', 'itemEditor']);
     let view = allowed.has(requested) ? requested : 'calendar';
-    if ((view === 'admin' || view === 'reports' || view === 'labEditor') && !isAdmin && !roleUnknown) {
+    if ((view === 'admin' || view === 'reports' || view === 'labEditor' || view === 'itemEditor') && !isAdmin && !roleUnknown) {
       view = 'calendar';
     }
 
-    applyRoute(view, { labId: route.labId });
+    applyRoute(view, { paramId: route.paramId });
   }
 
   function updateNav() {
@@ -483,7 +505,6 @@
     const selects = [
       { el: $('#calendarLabSelect'), allOption: true },
       { el: $('#reserveLab'), allOption: true },
-      { el: $('#itemLabSelect'), allOption: true },
     ];
 
     selects.forEach(({ el }) => {
@@ -934,21 +955,72 @@
   }
 
   // --- My Reservations ---
+  const MY_RESERVATIONS_PAGE_SIZE = 5;
+  let myReservationsCache = [];
+  let myReservationsPage = 1;
+
   async function loadMyReservations() {
     const container = $('#myReservationsList');
     container.innerHTML = '<div class="loading">Cargando</div>';
 
     try {
       const reservations = await API.getMyReservations();
-      if (reservations.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📋</div>No tienes reservas</div>';
-        return;
-      }
-
-      container.innerHTML = reservations.map(renderReservationCard).join('');
-      attachReservationActions(container);
+      myReservationsCache = reservations;
+      myReservationsPage = 1;
+      renderMyReservationsPage();
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
+    }
+  }
+
+  function renderMyReservationsPage() {
+    const container = $('#myReservationsList');
+    
+    if (myReservationsCache.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📋</div>No tienes reservas</div>';
+      return;
+    }
+
+    const start = (myReservationsPage - 1) * MY_RESERVATIONS_PAGE_SIZE;
+    const end = start + MY_RESERVATIONS_PAGE_SIZE;
+    const pageItems = myReservationsCache.slice(start, end);
+
+    let html = pageItems.map(renderReservationCard).join('');
+    
+    // Paginator
+    const totalPages = Math.ceil(myReservationsCache.length / MY_RESERVATIONS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnMyResPrev" ${myReservationsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${myReservationsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnMyResNext" ${myReservationsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+    attachReservationActions(container);
+
+    const btnPrev = $('#btnMyResPrev');
+    const btnNext = $('#btnMyResNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (myReservationsPage > 1) {
+          myReservationsPage--;
+          renderMyReservationsPage();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (myReservationsPage < totalPages) {
+          myReservationsPage++;
+          renderMyReservationsPage();
+        }
+      });
     }
   }
 
@@ -964,14 +1036,14 @@
       <div class="reservation-card" data-id="${r.id}" data-status="${r.status}">
         <div class="reservation-card__header">
           <div>
-            <div class="reservation-card__lab">${r.lab_name}</div>
-            <div class="reservation-card__time">${start} - ${end}</div>
+            <div class="reservation-card__lab"><i class="ph ph-flask"></i> ${r.lab_name}</div>
+            <div class="reservation-card__time"><i class="ph ph-clock"></i> ${start} - ${end}</div>
           </div>
           <span class="status-badge status-badge--${r.status}">${translateStatus(r.status)}</span>
         </div>
-        ${r.notes ? `<p style="font-size:0.8rem;color:var(--color-gray-500);margin-top:0.5rem">${r.notes}</p>` : ''}
-        <div class="reservation-card__items">📦 ${itemsText}</div>
-        ${r.status === 'pending' ? `<button class="btn btn--danger btn--sm" style="margin-top:0.75rem" data-action="cancel" data-id="${r.id}">Cancelar Reserva</button>` : ''}
+        ${r.notes ? `<p style="font-size:0.8rem;color:var(--color-gray-500);margin-top:0.5rem"><i class="ph ph-text-align-left"></i> ${r.notes}</p>` : ''}
+        <div class="reservation-card__items"><i class="ph ph-package"></i> ${itemsText}</div>
+        ${r.status === 'pending' ? `<button class="btn btn--danger btn--sm" style="margin-top:0.75rem" data-action="cancel" data-id="${r.id}"><i class="ph ph-x-circle"></i> Cancelar Reserva</button>` : ''}
       </div>
     `;
   }
@@ -1007,16 +1079,29 @@
         tab.classList.add('admin-tab--active');
 
         $$('.admin-panel').forEach((p) => p.classList.add('admin-panel--hidden'));
-        const panels = { pending: '#adminPending', all: '#adminAll', labs: '#adminLabs', items: '#adminItems' };
+        const panels = { 
+          pending: '#adminPending', 
+          all: '#adminAll', 
+          labs: '#adminLabs', 
+          items: '#adminItems',
+          faculties: '#adminFaculties',
+          programs: '#adminPrograms' 
+        };
         $(panels[tab.dataset.adminTab]).classList.remove('admin-panel--hidden');
 
         if (tab.dataset.adminTab === 'pending') loadPendingReservations();
         if (tab.dataset.adminTab === 'all') loadAllReservations();
         if (tab.dataset.adminTab === 'labs') loadLabs();
         if (tab.dataset.adminTab === 'items') loadAdminItems();
+        if (tab.dataset.adminTab === 'faculties') loadFaculties();
+        if (tab.dataset.adminTab === 'programs') loadPrograms();
       });
     });
   }
+
+  const PENDING_RESERVATIONS_PAGE_SIZE = 5;
+  let pendingReservationsCache = [];
+  let pendingReservationsPage = 1;
 
   async function loadPendingReservations() {
     const container = $('#pendingList');
@@ -1024,17 +1109,68 @@
 
     try {
       const reservations = await API.getReservations({ status: 'pending' });
-      if (reservations.length === 0) {
-        container.innerHTML = '<div class="empty-state">No hay solicitudes pendientes</div>';
-        return;
-      }
-
-      container.innerHTML = reservations.map((r) => renderAdminReservationItem(r, true)).join('');
-      attachAdminActions(container);
+      pendingReservationsCache = reservations;
+      pendingReservationsPage = 1;
+      renderPendingReservationsPage();
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
     }
   }
+
+  function renderPendingReservationsPage() {
+    const container = $('#pendingList');
+    
+    if (pendingReservationsCache.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hay solicitudes pendientes</div>';
+      return;
+    }
+
+    const start = (pendingReservationsPage - 1) * PENDING_RESERVATIONS_PAGE_SIZE;
+    const end = start + PENDING_RESERVATIONS_PAGE_SIZE;
+    const pageItems = pendingReservationsCache.slice(start, end);
+
+    let html = pageItems.map((r) => renderAdminReservationItem(r, true)).join('');
+    
+    // Paginator
+    const totalPages = Math.ceil(pendingReservationsCache.length / PENDING_RESERVATIONS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnPendingPrev" ${pendingReservationsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${pendingReservationsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnPendingNext" ${pendingReservationsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+    attachAdminActions(container);
+
+    const btnPrev = $('#btnPendingPrev');
+    const btnNext = $('#btnPendingNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (pendingReservationsPage > 1) {
+          pendingReservationsPage--;
+          renderPendingReservationsPage();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (pendingReservationsPage < totalPages) {
+          pendingReservationsPage++;
+          renderPendingReservationsPage();
+        }
+      });
+    }
+  }
+
+  const ALL_RESERVATIONS_PAGE_SIZE = 5;
+  let allReservationsCache = [];
+  let allReservationsPage = 1;
 
   async function loadAllReservations() {
     const container = $('#allReservationsList');
@@ -1042,15 +1178,62 @@
 
     try {
       const reservations = await API.getReservations();
-      if (reservations.length === 0) {
-        container.innerHTML = '<div class="empty-state">No hay reservas</div>';
-        return;
-      }
-
-      container.innerHTML = reservations.map((r) => renderAdminReservationItem(r, false)).join('');
-      attachAdminActions(container);
+      allReservationsCache = reservations;
+      allReservationsPage = 1;
+      renderAllReservationsPage();
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
+    }
+  }
+
+  function renderAllReservationsPage() {
+    const container = $('#allReservationsList');
+    
+    if (allReservationsCache.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hay reservas</div>';
+      return;
+    }
+
+    const start = (allReservationsPage - 1) * ALL_RESERVATIONS_PAGE_SIZE;
+    const end = start + ALL_RESERVATIONS_PAGE_SIZE;
+    const pageItems = allReservationsCache.slice(start, end);
+
+    let html = pageItems.map((r) => renderAdminReservationItem(r, false)).join('');
+    
+    // Paginator
+    const totalPages = Math.ceil(allReservationsCache.length / ALL_RESERVATIONS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnAllResPrev" ${allReservationsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${allReservationsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnAllResNext" ${allReservationsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+    attachAdminActions(container);
+
+    const btnPrev = $('#btnAllResPrev');
+    const btnNext = $('#btnAllResNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (allReservationsPage > 1) {
+          allReservationsPage--;
+          renderAllReservationsPage();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (allReservationsPage < totalPages) {
+          allReservationsPage++;
+          renderAllReservationsPage();
+        }
+      });
     }
   }
 
@@ -1065,19 +1248,19 @@
     return `
       <div class="admin-item" data-id="${r.id}">
         <div class="admin-item__info">
-          <div class="admin-item__title">${r.lab_name}</div>
+          <div class="admin-item__title"><i class="ph ph-flask"></i> ${r.lab_name}</div>
           <div class="admin-item__meta">
-            Por: ${r.user_name} (${r.user_email})<br>
-            ${start} - ${end}<br>
-            ${itemsText}
-            ${r.notes ? '<br>📝 ' + r.notes : ''}
+            <i class="ph ph-user"></i> Por: ${r.user_name} (${r.user_email})<br>
+            <i class="ph ph-clock"></i> ${start} - ${end}<br>
+            <i class="ph ph-package"></i> ${itemsText}
+            ${r.notes ? '<br><i class="ph ph-text-align-left"></i> ' + r.notes : ''}
           </div>
         </div>
         <span class="status-badge status-badge--${r.status}">${translateStatus(r.status)}</span>
         ${showActions && r.status === 'pending' ? `
           <div class="admin-item__actions">
-            <button class="btn btn--success btn--sm" data-action="approve" data-id="${r.id}">Aprobar</button>
-            <button class="btn btn--danger btn--sm" data-action="reject" data-id="${r.id}">Rechazar</button>
+            <button class="btn btn--success btn--sm" data-action="approve" data-id="${r.id}"><i class="ph ph-check"></i> Aprobar</button>
+            <button class="btn btn--danger btn--sm" data-action="reject" data-id="${r.id}"><i class="ph ph-x"></i> Rechazar</button>
           </div>
         ` : ''}
       </div>
@@ -1386,6 +1569,9 @@
     navigateToLabEditor(lab.id);
   }
 
+  const ADMIN_LABS_PAGE_SIZE = 5;
+  let adminLabsPage = 1;
+
   function renderAdminLabs() {
     const container = $('#adminLabsList');
     if (!container) return;
@@ -1395,7 +1581,11 @@
       return;
     }
 
-    container.innerHTML = labs
+    const start = (adminLabsPage - 1) * ADMIN_LABS_PAGE_SIZE;
+    const end = start + ADMIN_LABS_PAGE_SIZE;
+    const pageItems = labs.slice(start, end);
+
+    let html = pageItems
       .map(
         (lab) => `
       <div class="admin-item">
@@ -1405,13 +1595,48 @@
         </div>
         <span class="status-badge status-badge--${lab.status === 'active' ? 'approved' : 'rejected'}">${lab.status === 'active' ? 'Activo' : 'Mantenimiento'}</span>
         <div class="admin-item__actions">
-          <button class="btn btn--secondary btn--sm" data-action="edit-lab" data-id="${lab.id}">Editar</button>
-          <button class="btn btn--secondary btn--sm" data-action="toggle-lab" data-id="${lab.id}">${lab.status === 'active' ? 'Desactivar' : 'Activar'}</button>
+          <button class="btn btn--secondary btn--sm" data-action="edit-lab" data-id="${lab.id}"><i class="ph ph-pencil-simple"></i> Editar</button>
+          <button class="btn btn--secondary btn--sm" data-action="toggle-lab" data-id="${lab.id}"><i class="ph ${lab.status === 'active' ? 'ph-power' : 'ph-check'}"></i> ${lab.status === 'active' ? 'Desactivar' : 'Activar'}</button>
         </div>
       </div>
     `
       )
       .join('');
+
+    // Paginator
+    const totalPages = Math.ceil(labs.length / ADMIN_LABS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnLabsPrev" ${adminLabsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${adminLabsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnLabsNext" ${adminLabsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    const btnPrev = $('#btnLabsPrev');
+    const btnNext = $('#btnLabsNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (adminLabsPage > 1) {
+          adminLabsPage--;
+          renderAdminLabs();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (adminLabsPage < totalPages) {
+          adminLabsPage++;
+          renderAdminLabs();
+        }
+      });
+    }
 
     container.querySelectorAll('[data-action="edit-lab"]').forEach((btn) => {
       btn.addEventListener('click', function () {
@@ -1437,13 +1662,19 @@
   }
 
   // --- Admin Items ---
+  const ADMIN_ITEMS_PAGE_SIZE = 5;
+  let adminItemsPage = 1;
+  let adminItemsStatsMap = {};
+
   async function loadAdminItems() {
-    const labId = $('#itemLabSelect')?.value;
     const container = $('#adminItemsList');
     container.innerHTML = '<div class="loading">Cargando</div>';
 
     try {
-      const allItems = labId ? await API.getItemsByLab(labId) : await API.getItems();
+      const [allItems, stats] = await Promise.all([
+        API.getItems(),
+        API.getItemStats()
+      ]);
       items = allItems;
 
       if (allItems.length === 0) {
@@ -1451,43 +1682,197 @@
         return;
       }
 
-      container.innerHTML = allItems
-        .map(
-          (item) => `
-        <div class="admin-item">
-          <div class="admin-item__info">
-            <div class="admin-item__title">${item.name}</div>
-            <div class="admin-item__meta">
-              ${item.description || 'Sin descripcion'}<br>
-              Stock: ${item.available_stock}/${item.total_stock} | Lab: ${item.lab_name}
-            </div>
-          </div>
-          <div class="admin-item__actions">
-            <button class="btn btn--danger btn--sm" data-action="delete-item" data-id="${item.id}">Eliminar</button>
-          </div>
-        </div>
-      `
-        )
-        .join('');
-
-      container.querySelectorAll('[data-action="delete-item"]').forEach((btn) => {
-        btn.addEventListener('click', async function () {
-          const ok = await showConfirm('¿Eliminar este material?', 'Eliminar material', {
-            confirmText: 'Eliminar',
-            cancelText: 'Cancelar',
-          });
-          if (!ok) return;
-          try {
-            await API.deleteItem(this.dataset.id);
-            loadAdminItems();
-          } catch (err) {
-            showAlert(getFriendlyErrorMessage(err, { action: 'delete', entity: 'item' }), 'No se pudo eliminar el material');
-          }
-        });
+      adminItemsStatsMap = {};
+      stats.forEach(s => {
+        adminItemsStatsMap[s.item_id] = s;
       });
+
+      adminItemsPage = 1;
+      renderAdminItems();
+
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
     }
+  }
+
+  function renderAdminItems() {
+    const container = $('#adminItemsList');
+    
+    if (items.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hay materiales</div>';
+      return;
+    }
+
+    const start = (adminItemsPage - 1) * ADMIN_ITEMS_PAGE_SIZE;
+    const end = start + ADMIN_ITEMS_PAGE_SIZE;
+    const pageItems = items.slice(start, end);
+
+    let html = pageItems
+      .map(
+        (item) => {
+          const itemStats = adminItemsStatsMap[item.id] || {};
+          const timesReserved = itemStats.times_reserved || 0;
+          const pct = item.total_stock > 0 ? (item.available_stock / item.total_stock) * 100 : 0;
+          const barClass = pct > 50 ? 'high' : pct > 20 ? 'medium' : 'low';
+          
+          return `
+          <div class="inventory-card" style="margin-bottom: 0;">
+            <div class="inventory-card__header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div>
+                <div class="inventory-card__name">${item.name}</div>
+                <div class="inventory-card__lab">${item.lab_name} - <span style="font-size: 0.8em; color: var(--color-gray-500);">${item.description || 'Sin descripcion'}</span></div>
+              </div>
+              <div class="admin-item__actions" style="margin-top: 0;">
+                <button class="btn btn--secondary btn--sm" data-action="edit-item" data-id="${item.id}"><i class="ph ph-pencil-simple"></i> Editar</button>
+                <button class="btn btn--danger btn--sm" data-action="delete-item" data-id="${item.id}"><i class="ph ph-trash"></i> Eliminar</button>
+              </div>
+            </div>
+            <div class="inventory-card__progress">
+              <div class="inventory-card__progress-bar inventory-card__progress-bar--${barClass}" style="width:${pct}%"></div>
+            </div>
+            <div class="inventory-card__stats" style="margin-top: 0.5rem;">
+              <span>Disponible: ${item.available_stock}/${item.total_stock}</span>
+              <span>Reservas: ${timesReserved}</span>
+            </div>
+          </div>
+          `;
+        }
+      )
+      .join('');
+
+    // Paginator
+    const totalPages = Math.ceil(items.length / ADMIN_ITEMS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnItemsPrev" ${adminItemsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${adminItemsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnItemsNext" ${adminItemsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    const btnPrev = $('#btnItemsPrev');
+    const btnNext = $('#btnItemsNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (adminItemsPage > 1) {
+          adminItemsPage--;
+          renderAdminItems();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (adminItemsPage < totalPages) {
+          adminItemsPage++;
+          renderAdminItems();
+        }
+      });
+    }
+
+    container.querySelectorAll('[data-action="edit-item"]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        const item = items.find((i) => String(i.id) === String(this.dataset.id));
+        if (!item) return;
+        openItemEditorEdit(item);
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete-item"]').forEach((btn) => {
+      btn.addEventListener('click', async function () {
+        const item = items.find((i) => String(i.id) === String(this.dataset.id));
+        if (!item) return;
+        
+        const ok = await showConfirm(
+          `¿Estás seguro de eliminar el material "${item.name}"? Esta acción no se puede deshacer.`,
+          'Eliminar Material',
+          { confirmText: 'Eliminar', cancelText: 'Cancelar' }
+        );
+        if (!ok) return;
+
+        try {
+          await API.deleteItem(item.id);
+          loadAdminItems();
+        } catch (err) {
+          showAlert(getFriendlyErrorMessage(err, { action: 'delete', entity: 'item' }), 'No se pudo eliminar el material');
+        }
+      });
+    });
+  }
+
+  function resetItemEditorMessage() {
+    setFormMessage('itemEditorMessage', '');
+  }
+
+  function populateItemEditorLabSelect(selectedValue) {
+    const labSelect = document.getElementById('itemEditorLab');
+    if (!labSelect) return;
+    labSelect.innerHTML = '<option value="">Seleccionar laboratorio</option>';
+    labs.filter((l) => l.status === 'active').forEach((lab) => {
+      const opt = document.createElement('option');
+      opt.value = lab.id;
+      opt.textContent = lab.name;
+      labSelect.appendChild(opt);
+    });
+    if (selectedValue) {
+      labSelect.value = selectedValue;
+    }
+  }
+
+  function prepareItemEditorCreate() {
+    itemEditorMode = 'create';
+    itemEditorId = null;
+    resetItemEditorMessage();
+    document.getElementById('itemEditorTitle').textContent = 'Nuevo Material';
+    document.getElementById('itemEditorName').value = '';
+    document.getElementById('itemEditorDescription').value = '';
+    document.getElementById('itemEditorStock').value = '';
+    
+    populateItemEditorLabSelect(null);
+  }
+
+  function prepareItemEditorEditFromItem(item) {
+    itemEditorMode = 'edit';
+    itemEditorId = item.id;
+    resetItemEditorMessage();
+    document.getElementById('itemEditorTitle').textContent = 'Editar Material';
+    document.getElementById('itemEditorName').value = item.name || '';
+    document.getElementById('itemEditorDescription').value = item.description || '';
+    document.getElementById('itemEditorStock').value = String(item.total_stock ?? '');
+    
+    populateItemEditorLabSelect(item.lab_id);
+  }
+
+  async function loadItemEditorFromId(itemId) {
+    const idStr = String(itemId);
+    try {
+      const item = await API.get(`/items/${idStr}`);
+      const idx = items.findIndex((i) => String(i.id) === idStr);
+      if (idx >= 0) items[idx] = item;
+      else items.push(item);
+      prepareItemEditorEditFromItem(item);
+    } catch (err) {
+      const cached = items.find((i) => String(i.id) === idStr);
+      if (cached) {
+        prepareItemEditorEditFromItem(cached);
+      } else {
+        prepareItemEditorCreate();
+        showAlert('No se pudo cargar la informacion del material.', 'Error');
+      }
+    }
+  }
+
+  function openItemEditorCreate() {
+    navigateToItemEditor(null);
+  }
+
+  function openItemEditorEdit(item) {
+    navigateToItemEditor(item.id);
   }
 
   // --- Modals ---
@@ -1609,32 +1994,26 @@
     });
 
     $('#addItemBtn')?.addEventListener('click', () => {
-      const labId = $('#itemLabSelect').value;
-      if (!labId) {
-        showAlert('Selecciona un laboratorio para agregar materiales.', 'Faltan datos');
-        return;
-      }
-      $('#itemModalTitle').textContent = 'Nuevo Material';
-      $('#itemForm').reset();
-      $('#itemModal').classList.add('modal--active');
-      $('#itemForm').dataset.labId = labId;
+      openItemEditorCreate();
     });
 
-    $('#closeItemModal')?.addEventListener('click', () => {
-      $('#itemModal').classList.remove('modal--active');
+    $('#cancelItemEditorBtn')?.addEventListener('click', () => {
+      resetItemEditorMessage();
+      navigateTo('inventory');
     });
 
-    $('#itemForm')?.addEventListener('submit', async (e) => {
+    $('#itemEditorForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      setFormMessage('itemFormMessage', '');
+      resetItemEditorMessage();
 
-      const name = $('#itemName').value;
-      const description = $('#itemDescription').value;
-      const stockRaw = $('#itemStock').value;
+      const name = $('#itemEditorName').value;
+      const description = $('#itemEditorDescription').value;
+      const stockRaw = $('#itemEditorStock').value;
       const totalStock = parseInt(stockRaw, 10);
+      const labId = $('#itemEditorLab').value;
 
-      if (!name || !stockRaw || Number.isNaN(totalStock) || totalStock < 0) {
-        setFormMessage('itemFormMessage', 'Completa Nombre y un Stock válido (0 o mayor).');
+      if (!name || !stockRaw || Number.isNaN(totalStock) || totalStock < 0 || !labId) {
+        setFormMessage('itemEditorMessage', 'Completa Nombre, Stock válido (0 o mayor) y selecciona un Laboratorio.');
         return;
       }
 
@@ -1642,14 +2021,20 @@
         name,
         description,
         total_stock: totalStock,
-        lab_id: this.dataset.labId,
+        lab_id: labId,
       };
+
       try {
-        await API.createItem(data);
-        $('#itemModal').classList.remove('modal--active');
+        if (itemEditorMode === 'create') {
+          await API.createItem(data);
+        } else {
+          await API.updateItem(itemEditorId, data);
+        }
+        navigateTo('inventory');
         loadAdminItems();
       } catch (err) {
-        showAlert(getFriendlyErrorMessage(err, { action: 'create', entity: 'item' }), 'No se pudo crear el material');
+        const title = itemEditorMode === 'create' ? 'No se pudo crear el material' : 'No se pudo actualizar el material';
+        showAlert(getFriendlyErrorMessage(err, { action: itemEditorMode, entity: 'item' }), title);
       }
     });
   }
@@ -1694,21 +2079,22 @@
 
   // --- Reports ---
   async function generateReport() {
-    const month = parseInt($('#reportMonth').value, 10);
-    const year = parseInt($('#reportYear').value, 10);
+    const startDate = $('#reportStartDate').value;
+    const endDate = $('#reportEndDate').value;
     const container = $('#reportContent');
+
+    if (!startDate || !endDate) {
+      container.innerHTML = '<div class="empty-state empty-state--error">Selecciona fecha inicial y fecha final</div>';
+      return;
+    }
+
     container.innerHTML = '<div class="loading">Generando reporte</div>';
 
-    const monthNames = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-    ];
-
     try {
-      const report = await API.getMonthlyReport(year, month);
+      const report = await API.getReportByDateRange(startDate, endDate);
 
       if (report.length === 0) {
-        container.innerHTML = `<div class="empty-state">No hay datos para ${monthNames[month - 1]} ${year}</div>`;
+        container.innerHTML = `<div class="empty-state">No hay datos del ${new Date(startDate + 'T00:00:00').toLocaleDateString('es-ES')} al ${new Date(endDate + 'T00:00:00').toLocaleDateString('es-ES')}</div>`;
         return;
       }
 
@@ -1719,7 +2105,7 @@
 
       let html = `
         <div class="report-summary">
-          <div class="report-summary__title">Resumen - ${monthNames[month - 1]} ${year}</div>
+          <div class="report-summary__title">Resumen: ${new Date(startDate + 'T00:00:00').toLocaleDateString('es-ES')} al ${new Date(endDate + 'T00:00:00').toLocaleDateString('es-ES')}</div>
           <div class="report-summary__grid">
             <div class="report-summary__stat">
               <div class="report-summary__value">${totalReservations}</div>
@@ -1739,44 +2125,436 @@
             </div>
           </div>
         </div>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Laboratorio</th>
-              <th>Fecha</th>
-              <th>Duracion</th>
-              <th>Materiales</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-wrapper"><canvas id="statusChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-wrapper"><canvas id="labChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-wrapper"><canvas id="hoursChart"></canvas></div>
+          </div>
+          <div class="chart-card chart-card--wide">
+            <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+          </div>
+        </div>
+
+        <div id="reportTableContainer"></div>
       `;
+      container.innerHTML = html;
 
-      report.forEach((r) => {
-        const date = new Date(r.start_time).toLocaleDateString('es-ES');
-        const items = r.items_used && r.items_used.length > 0
-          ? r.items_used.map((i) => `${i.item_name} x${i.quantity}`).join(', ')
-          : '-';
+      let currentPage = 1;
+      const itemsPerPage = 5;
 
-        html += `
-          <tr>
-            <td>${r.user_name}<br><small style="color:var(--color-gray-400)">${r.user_email}</small></td>
-            <td>${r.lab_name}<br><small style="color:var(--color-gray-400)">${r.lab_location}</small></td>
-            <td>${date}<br><small style="color:var(--color-gray-400)">${new Date(r.start_time).toLocaleTimeString('es-ES', { timeStyle: 'short' })} - ${new Date(r.end_time).toLocaleTimeString('es-ES', { timeStyle: 'short' })}</small></td>
-            <td>${parseFloat(r.duration_hours).toFixed(1)}h</td>
-            <td>${items}</td>
-            <td><span class="status-badge status-badge--${r.status}">${translateStatus(r.status)}</span></td>
-          </tr>
+      const renderTablePage = (page) => {
+        const tableContainer = document.getElementById('reportTableContainer');
+        if (!tableContainer) return;
+
+        const totalPages = Math.ceil(report.length / itemsPerPage);
+        if (totalPages === 0) {
+          tableContainer.innerHTML = '<div class="empty-state">No hay reservas para mostrar.</div>';
+          return;
+        }
+
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+
+        const startIdx = (page - 1) * itemsPerPage;
+        const pageItems = report.slice(startIdx, startIdx + itemsPerPage);
+
+        let tableHtml = `
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Laboratorio</th>
+                <th>Fecha</th>
+                <th>Duracion</th>
+                <th>Materiales</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
         `;
+
+        pageItems.forEach((r) => {
+          const date = new Date(r.start_time).toLocaleDateString('es-ES');
+          const items = r.items_used && r.items_used.length > 0
+            ? r.items_used.map((i) => `${i.item_name} x${i.quantity}`).join(', ')
+            : '-';
+
+          tableHtml += `
+            <tr>
+              <td>${r.user_name}<br><small style="color:var(--color-gray-400)">${r.user_email}</small></td>
+              <td>${r.lab_name}<br><small style="color:var(--color-gray-400)">${r.lab_location}</small></td>
+              <td>${date}<br><small style="color:var(--color-gray-400)">${new Date(r.start_time).toLocaleTimeString('es-ES', { timeStyle: 'short' })} - ${new Date(r.end_time).toLocaleTimeString('es-ES', { timeStyle: 'short' })}</small></td>
+              <td>${parseFloat(r.duration_hours).toFixed(1)}h</td>
+              <td>${items}</td>
+              <td><span class="status-badge status-badge--${r.status}">${translateStatus(r.status)}</span></td>
+            </tr>
+          `;
+        });
+
+        tableHtml += '</tbody></table>';
+
+        if (totalPages > 1) {
+          tableHtml += `
+            <div class="pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+              <button class="btn btn--outline" id="prevPageBtn" ${page === 1 ? 'disabled' : ''}>Anterior</button>
+              <span style="display: flex; align-items: center; color: var(--color-gray-600);">Página ${page} de ${totalPages}</span>
+              <button class="btn btn--outline" id="nextPageBtn" ${page === totalPages ? 'disabled' : ''}>Siguiente</button>
+            </div>
+          `;
+        }
+
+        tableContainer.innerHTML = tableHtml;
+
+        if (totalPages > 1) {
+          document.getElementById('prevPageBtn')?.addEventListener('click', () => renderTablePage(currentPage - 1));
+          document.getElementById('nextPageBtn')?.addEventListener('click', () => renderTablePage(currentPage + 1));
+        }
+      };
+
+      renderTablePage(1);
+
+      // Generar Gráficas Dinámicas con Chart.js
+      if (window.reportChartStatus) window.reportChartStatus.destroy();
+      if (window.reportChartLab) window.reportChartLab.destroy();
+      if (window.reportChartHours) window.reportChartHours.destroy();
+      if (window.reportChartTrend) window.reportChartTrend.destroy();
+
+      // Prepare chart data
+      const statusCounts = { aprobadas: 0, pendientes: 0, rechazadas: 0, canceladas: 0 };
+      const labCounts = {};
+      const hoursPerLab = {};
+      const datesTrend = {};
+
+      report.forEach(r => {
+        // Status
+        if (r.status === 'approved') statusCounts.aprobadas++;
+        else if (r.status === 'pending') statusCounts.pendientes++;
+        else if (r.status === 'rejected') statusCounts.rechazadas++;
+        else if (r.status === 'cancelled') statusCounts.canceladas++;
+
+        // Lab counts
+        const labName = r.lab_name || 'Desconocido';
+        labCounts[labName] = (labCounts[labName] || 0) + 1;
+
+        // Hours per lab
+        const hours = parseFloat(r.duration_hours) || 0;
+        hoursPerLab[labName] = (hoursPerLab[labName] || 0) + hours;
+
+        // Trend over time
+        const dateStr = r.start_time.split('T')[0];
+        datesTrend[dateStr] = (datesTrend[dateStr] || 0) + 1;
       });
 
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      // Sort dates for trend chart
+      const sortedDates = Object.keys(datesTrend).sort();
+      const trendData = sortedDates.map(date => datesTrend[date]);
+
+      const isDarkMode = document.documentElement.classList.contains('theme-dark');
+      const textColor = isDarkMode ? '#e2e8f0' : '#1e293b';
+
+      const ctxStatus = document.getElementById('statusChart').getContext('2d');
+      window.reportChartStatus = new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pendientes', 'Aprobadas', 'Rechazadas', 'Canceladas'],
+          datasets: [{
+            data: [statusCounts.pendientes, statusCounts.aprobadas, statusCounts.rechazadas, statusCounts.canceladas],
+            backgroundColor: ['#eab308', '#22c55e', '#ef4444', '#64748b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: textColor } },
+            title: { display: true, text: 'Estado de Reservas', color: textColor, font: { size: 16 } }
+          }
+        }
+      });
+
+      const ctxLab = document.getElementById('labChart').getContext('2d');
+      window.reportChartLab = new Chart(ctxLab, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(labCounts),
+          datasets: [{
+            label: 'Reservas',
+            data: Object.values(labCounts),
+            backgroundColor: '#3b82f6',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Reservas por Laboratorio', color: textColor, font: { size: 16 } }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { stepSize: 1, color: textColor }, grid: { color: isDarkMode ? '#334155' : '#e2e8f0' } },
+            y: { ticks: { color: textColor }, grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxHours = document.getElementById('hoursChart').getContext('2d');
+      window.reportChartHours = new Chart(ctxHours, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(hoursPerLab),
+          datasets: [{
+            label: 'Horas Reservadas',
+            data: Object.values(hoursPerLab).map(h => h.toFixed(1)),
+            backgroundColor: '#10b981',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Horas de Uso por Laboratorio', color: textColor, font: { size: 16 } }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { color: textColor }, grid: { color: isDarkMode ? '#334155' : '#e2e8f0' } },
+            y: { ticks: { color: textColor }, grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxTrend = document.getElementById('trendChart').getContext('2d');
+      window.reportChartTrend = new Chart(ctxTrend, {
+        type: 'line',
+        data: {
+          labels: sortedDates,
+          datasets: [{
+            label: 'Reservas',
+            data: trendData,
+            borderColor: '#8b5cf6',
+            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Tendencia de Reservas por Día', color: textColor, font: { size: 16 } }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: textColor }, grid: { color: isDarkMode ? '#334155' : '#e2e8f0' } },
+            x: { ticks: { color: textColor }, grid: { display: false } }
+          }
+        }
+      });
+
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
     }
   }
+
+  // --- Admin Faculties ---
+  async function loadFaculties() {
+    const container = $('#adminFacultiesList');
+    container.innerHTML = '<div class="loading">Cargando Facultades</div>';
+    try {
+      faculties = await API.getFaculties();
+      renderAdminFacultiesList();
+      
+      // Update programs form faculty select
+      const select = $('#programFaculty');
+      if (select) {
+        select.innerHTML = '<option value="">Seleccione una facultad</option>';
+        faculties.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f.id;
+          opt.textContent = f.name;
+          select.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      container.innerHTML = renderErrorEmptyState(err);
+    }
+  }
+
+  function renderAdminFacultiesList() {
+    const container = $('#adminFacultiesList');
+    if (faculties.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hay facultades registradas</div>';
+      return;
+    }
+
+    container.innerHTML = faculties.map(f => `
+      <div class="admin-item-card">
+        <div class="admin-item-card__header">
+          <div class="admin-item-card__info">
+            <h4 class="admin-item-card__title">${f.name}</h4>
+          </div>
+          <div class="admin-item-card__actions">
+            <button class="btn btn--icon btn--outline edit-faculty-btn" data-id="${f.id}" title="Editar">
+              <i class="ph-duotone ph-pencil"></i>
+            </button>
+            <button class="btn btn--icon btn--outline delete-faculty-btn" data-id="${f.id}" title="Eliminar">
+              <i class="ph-duotone ph-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.edit-faculty-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fac = faculties.find(x => x.id === btn.dataset.id);
+        if (fac) openFacultyModal('edit', fac);
+      });
+    });
+
+    container.querySelectorAll('.delete-faculty-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirm('¿Seguro de eliminar esta facultad?', 'Eliminar Facultad');
+        if (!ok) return;
+        try {
+          await API.deleteFaculty(btn.dataset.id);
+          loadFaculties();
+        } catch (err) {
+          showAlert(getFriendlyErrorMessage(err), 'Error');
+        }
+      });
+    });
+  }
+
+  function openFacultyModal(mode, faculty = null) {
+    facultyEditorMode = mode;
+    facultyEditorId = faculty ? faculty.id : null;
+    
+    $('#facultyModalTitle').textContent = mode === 'create' ? 'Nueva Facultad' : 'Editar Facultad';
+    $('#facultyName').value = faculty ? faculty.name : '';
+    setFormMessage('facultyFormMessage', '');
+    $('#facultyModal').classList.add('modal--active');
+  }
+
+  $('#addFacultyBtn')?.addEventListener('click', () => openFacultyModal('create'));
+  $('#closeFacultyModal')?.addEventListener('click', () => $('#facultyModal').classList.remove('modal--active'));
+  
+  $('#facultyForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#facultyName').value;
+    try {
+      if (facultyEditorMode === 'create') {
+        await API.createFaculty({ name });
+      } else {
+        await API.updateFaculty(facultyEditorId, { name });
+      }
+      $('#facultyModal').classList.remove('modal--active');
+      loadFaculties();
+    } catch (err) {
+      setFormMessage('facultyFormMessage', getFriendlyErrorMessage(err));
+    }
+  });
+
+  // --- Admin Programs ---
+  async function loadPrograms() {
+    const container = $('#adminProgramsList');
+    container.innerHTML = '<div class="loading">Cargando Programas</div>';
+    try {
+      programs = await API.getPrograms();
+      renderAdminProgramsList();
+    } catch (err) {
+      container.innerHTML = renderErrorEmptyState(err);
+    }
+  }
+
+  function renderAdminProgramsList() {
+    const container = $('#adminProgramsList');
+    if (programs.length === 0) {
+      container.innerHTML = '<div class="empty-state">No hay programas registrados</div>';
+      return;
+    }
+
+    container.innerHTML = programs.map(p => `
+      <div class="admin-item-card">
+        <div class="admin-item-card__header">
+          <div class="admin-item-card__info">
+            <h4 class="admin-item-card__title">${p.name}</h4>
+            <p class="admin-item-card__meta"><i class="ph-duotone ph-buildings"></i> ${p.faculty_name}</p>
+          </div>
+          <div class="admin-item-card__actions">
+            <button class="btn btn--icon btn--outline edit-program-btn" data-id="${p.id}" title="Editar">
+              <i class="ph-duotone ph-pencil"></i>
+            </button>
+            <button class="btn btn--icon btn--outline delete-program-btn" data-id="${p.id}" title="Eliminar">
+              <i class="ph-duotone ph-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.edit-program-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prog = programs.find(x => x.id === btn.dataset.id);
+        if (prog) openProgramModal('edit', prog);
+      });
+    });
+
+    container.querySelectorAll('.delete-program-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ok = await showConfirm('¿Seguro de eliminar este programa?', 'Eliminar Programa');
+        if (!ok) return;
+        try {
+          await API.deleteProgram(btn.dataset.id);
+          loadPrograms();
+        } catch (err) {
+          showAlert(getFriendlyErrorMessage(err), 'Error');
+        }
+      });
+    });
+  }
+
+  function openProgramModal(mode, program = null) {
+    programEditorMode = mode;
+    programEditorId = program ? program.id : null;
+    
+    $('#programModalTitle').textContent = mode === 'create' ? 'Nuevo Programa' : 'Editar Programa';
+    $('#programName').value = program ? program.name : '';
+    $('#programFaculty').value = program ? program.faculty_id : '';
+    setFormMessage('programFormMessage', '');
+    $('#programModal').classList.add('modal--active');
+  }
+
+  $('#addProgramBtn')?.addEventListener('click', () => openProgramModal('create'));
+  $('#closeProgramModal')?.addEventListener('click', () => $('#programModal').classList.remove('modal--active'));
+  
+  $('#programForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#programName').value;
+    const faculty_id = $('#programFaculty').value;
+    try {
+      if (programEditorMode === 'create') {
+        await API.createProgram({ name, faculty_id });
+      } else {
+        await API.updateProgram(programEditorId, { name, faculty_id });
+      }
+      $('#programModal').classList.remove('modal--active');
+      loadPrograms();
+    } catch (err) {
+      setFormMessage('programFormMessage', getFriendlyErrorMessage(err));
+    }
+  });
 
   // --- Init ---
   function init() {
@@ -1816,10 +2594,13 @@
     scheduleReserveAvailabilityCheck();
 
 
-    // Set default report month/year
+    // Set default report dates (current month)
     const now = new Date();
-    $('#reportMonth').value = now.getMonth() + 1;
-    $('#reportYear').value = now.getFullYear();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    $('#reportStartDate').value = firstDay.toISOString().split('T')[0];
+    $('#reportEndDate').value = lastDay.toISOString().split('T')[0];
 
     // Hash-based navigation (supports refresh/F5)
     window.addEventListener('hashchange', routeOnLoadOrHashChange);

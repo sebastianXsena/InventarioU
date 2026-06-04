@@ -12,6 +12,7 @@ router.get('/', authenticate, reservationController.getAll);
 router.get('/my', authenticate, reservationController.getMyReservations);
 router.get('/lab/:labId', authenticate, reservationController.getByLabAndDateRange);
 router.get('/report/:year/:month', authenticate, authorize('admin'), reservationController.getMonthlyReport);
+router.get('/report-range', authenticate, authorize('admin'), reservationController.getReportByDateRange);
 router.get('/:id', authenticate, reservationController.getById);
 router.post('/', authenticate, validateReservationCreate, reservationController.create);
 router.patch('/:id/approve', authenticate, authorize('admin'), validateReservationApprove, reservationController.approveOrReject);

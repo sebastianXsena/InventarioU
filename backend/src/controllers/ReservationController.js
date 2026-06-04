@@ -95,6 +95,21 @@ const getMonthlyReport = async (req, res, next) => {
   }
 };
 
+const getReportByDateRange = async (req, res, next) => {
+  try {
+    const { start_date, end_date } = req.query;
+    if (!start_date || !end_date) {
+      const err = new Error('start_date and end_date query params required');
+      err.statusCode = 400;
+      throw err;
+    }
+    const report = await reservationService.getReportByDateRange(start_date, end_date);
+    res.json(report);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   create,
   getAll,
@@ -104,4 +119,5 @@ module.exports = {
   approveOrReject,
   cancel,
   getMonthlyReport,
+  getReportByDateRange,
 };

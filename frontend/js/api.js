@@ -102,4 +102,22 @@ const API = {
   approveReservation(id, status) { return this.patch(`/reservations/${id}/approve`, { status }); },
   cancelReservation(id) { return this.patch(`/reservations/${id}/cancel`); },
   getMonthlyReport(year, month) { return this.get(`/reservations/report/${year}/${month}`); },
+  getReportByDateRange(startDate, endDate) {
+    const qs = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    return this.get(`/reservations/report-range?${qs.toString()}`);
+  },
+
+  // Faculties
+  getFaculties() { return this.get('/faculties'); },
+  getFacultyById(id) { return this.get(`/faculties/${id}`); },
+  createFaculty(data) { return this.post('/faculties', data); },
+  updateFaculty(id, data) { return this.request('PUT', `/faculties/${id}`, data); },
+  deleteFaculty(id) { return this.request('DELETE', `/faculties/${id}`); },
+
+  // Programs
+  getPrograms() { return this.get('/programs'); },
+  getProgramById(id) { return this.get(`/programs/${id}`); },
+  createProgram(data) { return this.post('/programs', data); },
+  updateProgram(id, data) { return this.request('PUT', `/programs/${id}`, data); },
+  deleteProgram(id) { return this.request('DELETE', `/programs/${id}`); },
 };

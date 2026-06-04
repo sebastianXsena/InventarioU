@@ -259,6 +259,10 @@ class ReservationService {
   async getMonthlyReport(year, month) {
     return reservationRepo.getMonthlyReport(year, month);
   }
+
+  async getReportByDateRange(startDate, endDate) {
+    return reservationRepo.getReportByDateRange(startDate, endDate);
+  }
 }
 
 module.exports = new ReservationService();

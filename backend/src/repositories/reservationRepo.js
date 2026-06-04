@@ -16,7 +16,7 @@ class ReservationRepository {
     const executor = client || db;
     const query = `
       SELECT r.*,
-             u.name AS user_name, u.email AS user_email,
+             u.full_name AS user_name, u.email AS user_email,
              l.name AS lab_name, l.location AS lab_location
       FROM reservations r
       JOIN users u ON r.user_id = u.id
@@ -30,7 +30,7 @@ class ReservationRepository {
   async findAll(filters = {}) {
     let query = `
       SELECT r.*,
-             u.name AS user_name, u.email AS user_email,
+             u.full_name AS user_name, u.email AS user_email,
              l.name AS lab_name, l.location AS lab_location
       FROM reservations r
       JOIN users u ON r.user_id = u.id
@@ -74,7 +74,7 @@ class ReservationRepository {
   async findByLabAndDateRange(labId, startDate, endDate) {
     const query = `
       SELECT r.*,
-             u.name AS user_name, u.email AS user_email
+             u.full_name AS user_name, u.email AS user_email
       FROM reservations r
       JOIN users u ON r.user_id = u.id
       WHERE r.lab_id = $1
@@ -131,6 +131,16 @@ class ReservationRepository {
       ORDER BY start_time
     `;
     const { rows } = await db.query(query, [year, month]);
+    return rows;
+  }
+
+  async getReportByDateRange(startDate, endDate) {
+    const query = `
+      SELECT * FROM v_monthly_report
+      WHERE DATE(start_time) >= $1 AND DATE(start_time) <= $2
+      ORDER BY start_time
+    `;
+    const { rows } = await db.query(query, [startDate, endDate]);
     return rows;
   }
 
