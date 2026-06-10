@@ -36,4 +36,26 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, getProfile, getAllUsers };
+const updateProfile = async (req, res, next) => {
+  try {
+    const updatedUser = await userService.updateProfile(req.user.id, req.body);
+    res.json(updatedUser);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'oldPassword and newPassword are required' });
+    }
+    const result = await userService.changePassword(req.user.id, oldPassword, newPassword);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getProfile, getAllUsers, updateProfile, changePassword };

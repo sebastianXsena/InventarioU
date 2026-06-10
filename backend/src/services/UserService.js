@@ -63,6 +63,38 @@ class UserService {
   async getAllUsers() {
     return userRepo.findAll();
   }
+
+  async updateProfile(id, data) {
+    const updatedUser = await userRepo.updateProfile(id, data);
+    if (!updatedUser) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
+    return updatedUser;
+  }
+
+  async changePassword(id, oldPassword, newPassword) {
+    const user = await userRepo.findById(id);
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const userWithHash = await userRepo.findByEmail(user.email);
+
+    const valid = await bcrypt.compare(oldPassword, userWithHash.password_hash);
+    if (!valid) {
+      const err = new Error('Incorrect current password');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await userRepo.updatePassword(id, newHash);
+    return { success: true };
+  }
 }
 
 module.exports = new UserService();

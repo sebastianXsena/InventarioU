@@ -28,6 +28,23 @@ class UserRepository {
     const { rows } = await db.query(query);
     return rows;
   }
+
+  async updateProfile(id, { full_name, faculty_id, program_id, semester }) {
+    const query = `
+      UPDATE users 
+      SET full_name = $1, faculty_id = $2, program_id = $3, semester = $4
+      WHERE id = $5
+      RETURNING id, full_name, email, role, faculty_id, program_id, semester, created_at
+    `;
+    const { rows } = await db.query(query, [full_name, faculty_id || null, program_id || null, semester || null, id]);
+    return rows[0] || null;
+  }
+
+  async updatePassword(id, passwordHash) {
+    const query = 'UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id';
+    const { rows } = await db.query(query, [passwordHash, id]);
+    return rows[0] || null;
+  }
 }
 
 module.exports = new UserRepository();

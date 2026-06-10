@@ -58,11 +58,14 @@ const API = {
   get(path) { return this.request('GET', path); },
   post(path, body) { return this.request('POST', path, body); },
   patch(path, body) { return this.request('PATCH', path, body); },
+  put(path, body) { return this.request('PUT', path, body); },
 
   // Auth
   register(data) { return this.post('/auth/register', data); },
   login(data) { return this.post('/auth/login', data); },
   getProfile() { return this.get('/auth/me'); },
+  updateProfile(data) { return this.put('/auth/me', data); },
+  changePassword(data) { return this.put('/auth/me/password', data); },
 
   // Labs
   getLabs() { return this.get('/labs'); },

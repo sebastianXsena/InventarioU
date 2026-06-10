@@ -26,11 +26,14 @@
   }
 
   function applyTheme(theme) {
+    document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('theme-dark', theme === 'dark');
     document.documentElement.dataset.theme = theme;
-
     const btn = $('#themeToggleBtn');
-    if (btn) btn.textContent = theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+    if (btn) btn.innerHTML = theme === 'dark'
+      ? '<i class="ph-duotone ph-sun"></i>'
+      : '<i class="ph-duotone ph-moon"></i>';
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 420);
   }
 
   function initTheme() {
@@ -339,8 +342,24 @@
     adminRoot.querySelectorAll('.admin-tab').forEach((t) => t.classList.remove('admin-tab--active'));
     tab.classList.add('admin-tab--active');
 
+    const tabsContainer = tab.closest('.admin-tabs');
+    if (tabsContainer) {
+      // Usar requestAnimationFrame para asegurar que el DOM ha pintado el tamaño
+      requestAnimationFrame(() => {
+        tabsContainer.style.setProperty('--pill-left', `${tab.offsetLeft}px`);
+        tabsContainer.style.setProperty('--pill-width', `${tab.offsetWidth}px`);
+      });
+    }
+
     adminRoot.querySelectorAll('.admin-panel').forEach((p) => p.classList.add('admin-panel--hidden'));
-    const panels = { pending: '#adminPending', all: '#adminAll', labs: '#adminLabs' };
+    const panels = {
+      pending: '#adminPending',
+      all: '#adminAll',
+      labs: '#adminLabs',
+      items: '#adminItems',
+      faculties: '#adminFaculties',
+      programs: '#adminPrograms'
+    };
     const targetPanel = adminRoot.querySelector(panels[tabName]);
     if (targetPanel) targetPanel.classList.remove('admin-panel--hidden');
   }
@@ -350,20 +369,20 @@
     if (view === 'calendar') loadCalendar();
     if (view === 'my-reservations') loadMyReservations();
     if (view === 'admin') {
-      // Default to labs when coming from editor
-      selectAdminTab('labs');
-      loadLabs();
+      // Read the return tab stored by lab-editor.html / item-editor.html
+      const returnTab = sessionStorage.getItem('adminReturnTab');
+      const tab = returnTab || (params && params.tab) || 'labs';
+      sessionStorage.setItem('adminReturnTab', tab);
+      selectAdminTab(tab);
+      if (tab === 'labs') loadLabs();
+      else if (tab === 'items') loadAdminItems();
+      else if (tab === 'pending') loadPendingReservations();
+      else if (tab === 'all') loadAllReservations();
+      else if (tab === 'faculties') loadFaculties();
+      else if (tab === 'programs') loadPrograms();
+      else loadLabs();
     }
-    if (view === 'labEditor') {
-      const labId = params && params.paramId ? params.paramId : null;
-      if (labId) loadLabEditorFromId(labId);
-      else prepareLabEditorCreate();
-    }
-    if (view === 'itemEditor') {
-      const itemId = params && params.paramId ? params.paramId : null;
-      if (itemId) loadItemEditorFromId(itemId);
-      else prepareItemEditorCreate();
-    }
+    if (view === 'settings') loadSettings();
   }
 
   function navigateTo(view) {
@@ -376,21 +395,11 @@
   }
 
   function navigateToLabEditor(labId = null) {
-    const nextHash = labId ? `#labEditor/${labId}` : '#labEditor';
-    if (window.location.hash !== nextHash) {
-      window.location.hash = nextHash;
-    } else {
-      applyRoute('labEditor', { paramId: labId });
-    }
+    window.location.href = labId ? '/lab-editor.html?id=' + labId : '/lab-editor.html';
   }
 
   function navigateToItemEditor(itemId = null) {
-    const nextHash = itemId ? `#itemEditor/${itemId}` : '#itemEditor';
-    if (window.location.hash !== nextHash) {
-      window.location.hash = nextHash;
-    } else {
-      applyRoute('itemEditor', { paramId: itemId });
-    }
+    window.location.href = itemId ? '/item-editor.html?id=' + itemId : '/item-editor.html';
   }
 
   function parseHashRoute() {
@@ -421,9 +430,9 @@
       return;
     }
 
-    const allowed = new Set(['calendar', 'reserve', 'my-reservations', 'inventory', 'admin', 'reports', 'labEditor', 'itemEditor']);
+    const allowed = new Set(['calendar', 'reserve', 'my-reservations', 'admin', 'reports', 'settings']);
     let view = allowed.has(requested) ? requested : 'calendar';
-    if ((view === 'admin' || view === 'reports' || view === 'labEditor' || view === 'itemEditor') && !isAdmin && !roleUnknown) {
+    if ((view === 'admin' || view === 'reports') && !isAdmin && !roleUnknown) {
       view = 'calendar';
     }
 
@@ -455,6 +464,8 @@
 
     $('#logoutBtn').style.display = loggedIn ? 'inline-flex' : 'none';
     $('#themeToggleBtn').style.display = loggedIn ? 'inline-flex' : 'none';
+    const settingsIconBtn = $('#navSettingsIconBtn');
+    if (settingsIconBtn) settingsIconBtn.style.display = loggedIn ? 'inline-flex' : 'none';
   }
 
   // --- Auth ---
@@ -489,6 +500,106 @@
     currentUser = null;
     updateNav();
     navigateTo('login');
+  }
+
+  // --- Settings ---
+  async function loadSettings() {
+    try {
+      const user = await API.getProfile();
+      $('#settingsFullName').value = user.full_name || '';
+      $('#settingsSemester').value = user.semester || '';
+
+      const faculties = await API.getFaculties();
+      const facSelect = $('#settingsFaculty');
+      facSelect.innerHTML = '<option value="">Seleccionar facultad</option>';
+      faculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.name;
+        facSelect.appendChild(opt);
+      });
+      if (user.faculty_id) facSelect.value = user.faculty_id;
+
+      await loadSettingsPrograms(user.faculty_id, user.program_id);
+
+      facSelect.onchange = async (e) => {
+        await loadSettingsPrograms(e.target.value, null);
+      };
+    } catch (err) {
+      console.error(err);
+      showAlert('No se pudo cargar el perfil', 'Error');
+    }
+  }
+
+  async function loadSettingsPrograms(facultyId, selectedProgramId) {
+    const progSelect = $('#settingsProgram');
+    progSelect.innerHTML = '<option value="">Seleccionar programa</option>';
+    if (!facultyId) return;
+    try {
+      const programs = await API.getPrograms();
+      programs.filter(p => p.faculty_id === facultyId).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        progSelect.appendChild(opt);
+      });
+      if (selectedProgramId) progSelect.value = selectedProgramId;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleProfileSettingsSubmit(e) {
+    e.preventDefault();
+    setFormMessage('profileSettingsMessage', '');
+    const data = {
+      full_name: $('#settingsFullName').value.trim(),
+      faculty_id: $('#settingsFaculty').value || null,
+      program_id: $('#settingsProgram').value || null,
+      semester: parseInt($('#settingsSemester').value, 10) || null
+    };
+
+    if (!data.full_name) {
+      setFormMessage('profileSettingsMessage', 'El nombre completo es obligatorio.');
+      return;
+    }
+
+    try {
+      const updatedUser = await API.updateProfile(data);
+      currentUser = updatedUser; // Update local state
+      showAlert('Datos personales actualizados correctamente.', 'Éxito');
+    } catch (err) {
+      setFormMessage('profileSettingsMessage', err.message || 'No se pudo actualizar el perfil.');
+    }
+  }
+
+  async function handlePasswordSettingsSubmit(e) {
+    e.preventDefault();
+    setFormMessage('passwordSettingsMessage', '');
+    const oldPassword = $('#settingsOldPassword').value;
+    const newPassword = $('#settingsNewPassword').value;
+    const confirmPassword = $('#settingsConfirmPassword').value;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setFormMessage('passwordSettingsMessage', 'Completa todos los campos.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setFormMessage('passwordSettingsMessage', 'La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setFormMessage('passwordSettingsMessage', 'Las nuevas contraseñas no coinciden.');
+      return;
+    }
+
+    try {
+      await API.changePassword({ oldPassword, newPassword });
+      showAlert('Contraseña actualizada correctamente.', 'Éxito');
+      e.target.reset(); // Clear form
+    } catch (err) {
+      setFormMessage('passwordSettingsMessage', err.message || 'No se pudo cambiar la contraseña.');
+    }
   }
 
   // --- Labs ---
@@ -649,11 +760,11 @@
           <tr>
             <th class="calendar-table__corner">Hora</th>
             ${weekDays
-              .map((d, idx) => {
-                const label = `${dayNames[idx]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-                return `<th class="calendar-table__day" scope="col">${label}</th>`;
-              })
-              .join('')}
+          .map((d, idx) => {
+            const label = `${dayNames[idx]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+            return `<th class="calendar-table__day" scope="col">${label}</th>`;
+          })
+          .join('')}
           </tr>
         </thead>
       `;
@@ -975,7 +1086,7 @@
 
   function renderMyReservationsPage() {
     const container = $('#myReservationsList');
-    
+
     if (myReservationsCache.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📋</div>No tienes reservas</div>';
       return;
@@ -986,7 +1097,7 @@
     const pageItems = myReservationsCache.slice(start, end);
 
     let html = pageItems.map(renderReservationCard).join('');
-    
+
     // Paginator
     const totalPages = Math.ceil(myReservationsCache.length / MY_RESERVATIONS_PAGE_SIZE);
     if (totalPages > 1) {
@@ -1075,17 +1186,26 @@
   function initAdminTabs() {
     $$('.admin-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
+        sessionStorage.setItem('adminReturnTab', tab.dataset.adminTab);
         $$('.admin-tab').forEach((t) => t.classList.remove('admin-tab--active'));
         tab.classList.add('admin-tab--active');
 
+        const tabsContainer = tab.closest('.admin-tabs');
+        if (tabsContainer) {
+          requestAnimationFrame(() => {
+            tabsContainer.style.setProperty('--pill-left', `${tab.offsetLeft}px`);
+            tabsContainer.style.setProperty('--pill-width', `${tab.offsetWidth}px`);
+          });
+        }
+
         $$('.admin-panel').forEach((p) => p.classList.add('admin-panel--hidden'));
-        const panels = { 
-          pending: '#adminPending', 
-          all: '#adminAll', 
-          labs: '#adminLabs', 
+        const panels = {
+          pending: '#adminPending',
+          all: '#adminAll',
+          labs: '#adminLabs',
           items: '#adminItems',
           faculties: '#adminFaculties',
-          programs: '#adminPrograms' 
+          programs: '#adminPrograms'
         };
         $(panels[tab.dataset.adminTab]).classList.remove('admin-panel--hidden');
 
@@ -1119,7 +1239,7 @@
 
   function renderPendingReservationsPage() {
     const container = $('#pendingList');
-    
+
     if (pendingReservationsCache.length === 0) {
       container.innerHTML = '<div class="empty-state">No hay solicitudes pendientes</div>';
       return;
@@ -1130,7 +1250,7 @@
     const pageItems = pendingReservationsCache.slice(start, end);
 
     let html = pageItems.map((r) => renderAdminReservationItem(r, true)).join('');
-    
+
     // Paginator
     const totalPages = Math.ceil(pendingReservationsCache.length / PENDING_RESERVATIONS_PAGE_SIZE);
     if (totalPages > 1) {
@@ -1188,7 +1308,7 @@
 
   function renderAllReservationsPage() {
     const container = $('#allReservationsList');
-    
+
     if (allReservationsCache.length === 0) {
       container.innerHTML = '<div class="empty-state">No hay reservas</div>';
       return;
@@ -1199,7 +1319,7 @@
     const pageItems = allReservationsCache.slice(start, end);
 
     let html = pageItems.map((r) => renderAdminReservationItem(r, false)).join('');
-    
+
     // Paginator
     const totalPages = Math.ceil(allReservationsCache.length / ALL_RESERVATIONS_PAGE_SIZE);
     if (totalPages > 1) {
@@ -1697,7 +1817,7 @@
 
   function renderAdminItems() {
     const container = $('#adminItemsList');
-    
+
     if (items.length === 0) {
       container.innerHTML = '<div class="empty-state">No hay materiales</div>';
       return;
@@ -1714,7 +1834,7 @@
           const timesReserved = itemStats.times_reserved || 0;
           const pct = item.total_stock > 0 ? (item.available_stock / item.total_stock) * 100 : 0;
           const barClass = pct > 50 ? 'high' : pct > 20 ? 'medium' : 'low';
-          
+
           return `
           <div class="inventory-card" style="margin-bottom: 0;">
             <div class="inventory-card__header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
@@ -1787,7 +1907,7 @@
       btn.addEventListener('click', async function () {
         const item = items.find((i) => String(i.id) === String(this.dataset.id));
         if (!item) return;
-        
+
         const ok = await showConfirm(
           `¿Estás seguro de eliminar el material "${item.name}"? Esta acción no se puede deshacer.`,
           'Eliminar Material',
@@ -1832,7 +1952,7 @@
     document.getElementById('itemEditorName').value = '';
     document.getElementById('itemEditorDescription').value = '';
     document.getElementById('itemEditorStock').value = '';
-    
+
     populateItemEditorLabSelect(null);
   }
 
@@ -1844,7 +1964,7 @@
     document.getElementById('itemEditorName').value = item.name || '';
     document.getElementById('itemEditorDescription').value = item.description || '';
     document.getElementById('itemEditorStock').value = String(item.total_stock ?? '');
-    
+
     populateItemEditorLabSelect(item.lab_id);
   }
 
@@ -1877,165 +1997,14 @@
 
   // --- Modals ---
   function initModals() {
-    // Labs editor (separate view)
+    // Lab editor → standalone page
     $('#addLabBtn')?.addEventListener('click', () => {
       openLabEditorCreate();
     });
 
-    $('#cancelLabEditorBtn')?.addEventListener('click', () => {
-      resetLabEditorMessage();
-      navigateTo('admin');
-    });
-
-    $('#addScheduleRowBtn')?.addEventListener('click', () => {
-      resetLabEditorMessage();
-      addEmptyScheduleRow();
-    });
-
-    $('#labScheduleList')?.addEventListener('click', (e) => {
-      const actionBtn = e.target.closest('[data-action]');
-      if (!actionBtn) return;
-      const action = actionBtn.dataset.action;
-
-      if (action === 'schedule-prev') {
-        if (labSchedulePage > 1) {
-          labSchedulePage -= 1;
-          renderSchedulePage();
-        }
-        return;
-      }
-
-      if (action === 'schedule-next') {
-        const totalPages = getScheduleTotalPages();
-        if (labSchedulePage < totalPages) {
-          labSchedulePage += 1;
-          renderSchedulePage();
-        }
-        return;
-      }
-
-      if (action === 'remove-schedule') {
-        const row = actionBtn.closest('.lab-schedule-row');
-        if (!row) return;
-        const index = parseInt(row.dataset.index, 10);
-        if (!Number.isFinite(index) || index < 0 || index >= labScheduleDraft.length) return;
-
-        labScheduleDraft.splice(index, 1);
-        clearScheduleRowErrors();
-
-        // keep page in range after removal
-        const totalPages = getScheduleTotalPages();
-        labSchedulePage = Math.min(labSchedulePage, totalPages);
-        renderSchedulePage();
-      }
-    });
-
-    const onScheduleFieldChange = (e) => {
-      const fieldEl = e.target.closest('[data-field]');
-      const row = e.target.closest('.lab-schedule-row');
-      if (!fieldEl || !row) return;
-
-      const index = parseInt(row.dataset.index, 10);
-      if (!Number.isFinite(index) || index < 0 || index >= labScheduleDraft.length) return;
-
-      const field = fieldEl.dataset.field;
-      const value = fieldEl.value;
-
-      const entry = labScheduleDraft[index] || normalizeScheduleEntry({});
-      if (field === 'day') entry.day_of_week = parseInt(value, 10) || 1;
-      if (field === 'name') entry.name = String(value || '');
-      if (field === 'start') entry.start = String(value || '');
-      if (field === 'end') entry.end = String(value || '');
-
-      labScheduleDraft[index] = entry;
-      if (labScheduleErrorIndices.has(index)) {
-        labScheduleErrorIndices.delete(index);
-        row.classList.remove('lab-schedule-row--error');
-      }
-    };
-
-    $('#labScheduleList')?.addEventListener('change', onScheduleFieldChange);
-    $('#labScheduleList')?.addEventListener('input', onScheduleFieldChange);
-
-    $('#labEditorForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      resetLabEditorMessage();
-
-      const name = $('#labEditorName').value;
-      const location = $('#labEditorLocation').value;
-      const capacityRaw = $('#labEditorCapacity').value;
-      const capacity = parseInt(capacityRaw, 10);
-
-      if (!name || !location || !capacityRaw || Number.isNaN(capacity) || capacity < 1) {
-        setFormMessage('labEditorMessage', 'Completa Nombre, Ubicación y una Capacidad válida (mínimo 1).');
-        return;
-      }
-
-      let blocked_schedule = [];
-      try {
-        blocked_schedule = getScheduleFromEditor();
-      } catch (err) {
-        setFormMessage('labEditorMessage', err.message || 'Revisa los horarios de clases.');
-        return;
-      }
-
-      try {
-        if (labEditorMode === 'create') {
-          await API.createLab({ name, location, capacity, status: 'active', blocked_schedule });
-        } else {
-          await API.updateLab(labEditorId, { name, location, capacity, blocked_schedule });
-        }
-        navigateTo('admin');
-        loadLabs();
-      } catch (err) {
-        const title = labEditorMode === 'create' ? 'No se pudo crear el laboratorio' : 'No se pudo actualizar el laboratorio';
-        showAlert(getFriendlyErrorMessage(err, { action: labEditorMode, entity: 'lab' }), title);
-      }
-    });
-
+    // Item editor → standalone page
     $('#addItemBtn')?.addEventListener('click', () => {
       openItemEditorCreate();
-    });
-
-    $('#cancelItemEditorBtn')?.addEventListener('click', () => {
-      resetItemEditorMessage();
-      navigateTo('inventory');
-    });
-
-    $('#itemEditorForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      resetItemEditorMessage();
-
-      const name = $('#itemEditorName').value;
-      const description = $('#itemEditorDescription').value;
-      const stockRaw = $('#itemEditorStock').value;
-      const totalStock = parseInt(stockRaw, 10);
-      const labId = $('#itemEditorLab').value;
-
-      if (!name || !stockRaw || Number.isNaN(totalStock) || totalStock < 0 || !labId) {
-        setFormMessage('itemEditorMessage', 'Completa Nombre, Stock válido (0 o mayor) y selecciona un Laboratorio.');
-        return;
-      }
-
-      const data = {
-        name,
-        description,
-        total_stock: totalStock,
-        lab_id: labId,
-      };
-
-      try {
-        if (itemEditorMode === 'create') {
-          await API.createItem(data);
-        } else {
-          await API.updateItem(itemEditorId, data);
-        }
-        navigateTo('inventory');
-        loadAdminItems();
-      } catch (err) {
-        const title = itemEditorMode === 'create' ? 'No se pudo crear el material' : 'No se pudo actualizar el material';
-        showAlert(getFriendlyErrorMessage(err, { action: itemEditorMode, entity: 'item' }), title);
-      }
     });
   }
 
@@ -2273,6 +2242,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: 15 },
           plugins: {
             legend: { position: 'bottom', labels: { color: textColor } },
             title: { display: true, text: 'Estado de Reservas', color: textColor, font: { size: 16 } }
@@ -2296,6 +2266,7 @@
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: { left: 10, right: 20, top: 10, bottom: 10 } },
           plugins: {
             legend: { display: false },
             title: { display: true, text: 'Reservas por Laboratorio', color: textColor, font: { size: 16 } }
@@ -2323,6 +2294,7 @@
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: { left: 10, right: 20, top: 10, bottom: 10 } },
           plugins: {
             legend: { display: false },
             title: { display: true, text: 'Horas de Uso por Laboratorio', color: textColor, font: { size: 16 } }
@@ -2351,6 +2323,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: { left: 10, right: 20, top: 10, bottom: 10 } },
           plugins: {
             legend: { display: false },
             title: { display: true, text: 'Tendencia de Reservas por Día', color: textColor, font: { size: 16 } }
@@ -2374,7 +2347,7 @@
     try {
       faculties = await API.getFaculties();
       renderAdminFacultiesList();
-      
+
       // Update programs form faculty select
       const select = $('#programFaculty');
       if (select) {
@@ -2440,7 +2413,7 @@
   function openFacultyModal(mode, faculty = null) {
     facultyEditorMode = mode;
     facultyEditorId = faculty ? faculty.id : null;
-    
+
     $('#facultyModalTitle').textContent = mode === 'create' ? 'Nueva Facultad' : 'Editar Facultad';
     $('#facultyName').value = faculty ? faculty.name : '';
     setFormMessage('facultyFormMessage', '');
@@ -2449,7 +2422,7 @@
 
   $('#addFacultyBtn')?.addEventListener('click', () => openFacultyModal('create'));
   $('#closeFacultyModal')?.addEventListener('click', () => $('#facultyModal').classList.remove('modal--active'));
-  
+
   $('#facultyForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = $('#facultyName').value;
@@ -2528,7 +2501,7 @@
   function openProgramModal(mode, program = null) {
     programEditorMode = mode;
     programEditorId = program ? program.id : null;
-    
+
     $('#programModalTitle').textContent = mode === 'create' ? 'Nuevo Programa' : 'Editar Programa';
     $('#programName').value = program ? program.name : '';
     $('#programFaculty').value = program ? program.faculty_id : '';
@@ -2538,7 +2511,7 @@
 
   $('#addProgramBtn')?.addEventListener('click', () => openProgramModal('create'));
   $('#closeProgramModal')?.addEventListener('click', () => $('#programModal').classList.remove('modal--active'));
-  
+
   $('#programForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = $('#programName').value;
@@ -2567,6 +2540,9 @@
     // Event listeners
     $('#loginForm').addEventListener('submit', handleLogin);
     $('#logoutBtn').addEventListener('click', handleLogout);
+
+    $('#profileSettingsForm')?.addEventListener('submit', handleProfileSettingsSubmit);
+    $('#passwordSettingsForm')?.addEventListener('submit', handlePasswordSettingsSubmit);
 
     $('#loadCalendarBtn').addEventListener('click', loadCalendar);
     $('#reserveLab').addEventListener('change', onLabChangeForReserve);
@@ -2598,7 +2574,7 @@
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
+
     $('#reportStartDate').value = firstDay.toISOString().split('T')[0];
     $('#reportEndDate').value = lastDay.toISOString().split('T')[0];
 
@@ -2642,8 +2618,8 @@
             grid.innerHTML = '<div class="empty-state empty-state--error">No se pudo validar la sesión en este momento. Intenta recargar en unos segundos.</div>';
           }
         });
-        updateNav();
-        routeOnLoadOrHashChange();
+      updateNav();
+      routeOnLoadOrHashChange();
       updateNav();
     }
   }

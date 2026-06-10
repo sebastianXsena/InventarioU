@@ -51,17 +51,22 @@
             <li class="nav__item nav__item--hidden" data-view="reports">
               <a href="#reports" class="nav__link" id="navReports"><i class="ph-duotone ph-chart-bar"></i> Reportes</a>
             </li>
+
           </ul>
-          <div class="nav__actions">
-            <button class="btn btn--sm btn--outline" id="themeToggleBtn" type="button" style="display:none;">Modo
-              oscuro</button>
-            <button class="btn btn--sm btn--outline" id="logoutBtn" style="display:none;">Cerrar Sesion</button>
-          </div>
         </nav>
       </div>
     </header>
 
-    <main class="main">
+    <div class="main-wrapper" style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+      <header class="topbar">
+        <div class="topbar__actions" id="topbarActions">
+          <button class="btn btn--icon" id="themeToggleBtn" type="button" style="display:none;" title="Alternar tema"><i class="ph-duotone ph-moon"></i></button>
+          <a href="#settings" class="btn btn--icon" id="navSettingsIconBtn" style="display:none;" title="Ajustes"><i class="ph-duotone ph-gear"></i></a>
+          <button class="btn" id="logoutBtn" style="display:none;"><i class="ph-duotone ph-sign-out" style="margin-right: 0.4rem; font-size: 1.1rem;"></i> Salir</button>
+        </div>
+      </header>
+
+      <main class="main" style="flex: 1; margin: 0; max-width: none;">
       <section class="view" id="loginView">
         <div class="auth-card">
           <div class="auth-card__header">
@@ -190,32 +195,6 @@
             <button class="btn btn--primary btn--sm" id="addLabBtn"><i class="bi bi-plus-circle"></i> Nuevo
               Laboratorio</button>
             <div class="admin-list" id="adminLabsList"></div>
-
-            <div class="modal" id="labModal">
-              <div class="modal__content">
-                <h3 class="modal__title" id="labModalTitle">Nuevo Laboratorio</h3>
-                <form class="modal-form" id="labForm" novalidate>
-                  <div class="form-note form-note--error form-note--hidden" id="labFormMessage" role="alert"
-                    aria-live="polite"></div>
-                  <div class="form-group">
-                    <label class="form-label" for="labName">Nombre</label>
-                    <input class="form-input" type="text" id="labName" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="labLocation">Ubicacion</label>
-                    <input class="form-input" type="text" id="labLocation" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="labCapacity">Capacidad</label>
-                    <input class="form-input" type="number" id="labCapacity" min="1" required>
-                  </div>
-                  <div class="modal-actions">
-                    <button class="btn btn--secondary" type="button" id="closeLabModal">Cancelar</button>
-                    <button class="btn btn--primary" type="submit">Guardar</button>
-                  </div>
-                </form>
-              </div>
-            </div>
           </div>
           <div class="admin-panel admin-panel--hidden" id="adminItems">
             <h3 class="admin-panel__title">Gestion de Inventario</h3>
@@ -229,23 +208,6 @@
             <button class="btn btn--primary btn--sm" id="addFacultyBtn" style="margin-bottom: 1.5rem;"><i
                 class="bi bi-plus-circle"></i> Nueva Facultad</button>
             <div class="admin-list" id="adminFacultiesList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
-
-            <div class="modal" id="facultyModal">
-              <div class="modal__content">
-                <h3 class="modal__title" id="facultyModalTitle">Nueva Facultad</h3>
-                <form class="modal-form" id="facultyForm" novalidate>
-                  <div class="form-note form-note--error form-note--hidden" id="facultyFormMessage" role="alert" aria-live="polite"></div>
-                  <div class="form-group">
-                    <label class="form-label" for="facultyName">Nombre de la Facultad</label>
-                    <input class="form-input" type="text" id="facultyName" required>
-                  </div>
-                  <div class="modal-actions">
-                    <button class="btn btn--secondary" type="button" id="closeFacultyModal">Cancelar</button>
-                    <button class="btn btn--primary" type="submit">Guardar</button>
-                  </div>
-                </form>
-              </div>
-            </div>
           </div>
 
           <div class="admin-panel admin-panel--hidden" id="adminPrograms">
@@ -253,105 +215,6 @@
             <button class="btn btn--primary btn--sm" id="addProgramBtn" style="margin-bottom: 1.5rem;"><i
                 class="bi bi-plus-circle"></i> Nuevo Programa</button>
             <div class="admin-list" id="adminProgramsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
-
-            <div class="modal" id="programModal">
-              <div class="modal__content">
-                <h3 class="modal__title" id="programModalTitle">Nuevo Programa</h3>
-                <form class="modal-form" id="programForm" novalidate>
-                  <div class="form-note form-note--error form-note--hidden" id="programFormMessage" role="alert" aria-live="polite"></div>
-                  <div class="form-group">
-                    <label class="form-label" for="programName">Nombre del Programa</label>
-                    <input class="form-input" type="text" id="programName" required>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="programFaculty">Facultad</label>
-                    <select class="form-select" id="programFaculty" required>
-                      <option value="">Seleccione una facultad</option>
-                    </select>
-                  </div>
-                  <div class="modal-actions">
-                    <button class="btn btn--secondary" type="button" id="closeProgramModal">Cancelar</button>
-                    <button class="btn btn--primary" type="submit">Guardar</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="labEditorView">
-        <div class="admin-container">
-          <div class="admin-panel">
-            <h2 class="section-title" id="labEditorPageTitle">Laboratorio</h2>
-            <div class="lab-editor">
-              <h4 class="admin-panel__title" id="labEditorTitle">Nuevo Laboratorio</h4>
-              <form class="modal-form" id="labEditorForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="labEditorMessage" role="alert"
-                  aria-live="polite"></div>
-                <div class="form-group">
-                  <label class="form-label" for="labEditorName">Nombre</label>
-                  <input class="form-input" type="text" id="labEditorName" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="labEditorLocation">Ubicacion</label>
-                  <input class="form-input" type="text" id="labEditorLocation" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="labEditorCapacity">Capacidad</label>
-                  <input class="form-input" type="number" id="labEditorCapacity" min="1" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Horarios no reservables (clases)</label>
-                  <div class="lab-schedule" id="labScheduleList"></div>
-                  <button class="btn btn--outline btn--sm" type="button" id="addScheduleRowBtn">+ Agregar
-                    horario</button>
-                </div>
-
-                <div class="modal-actions">
-                  <button class="btn btn--secondary" type="button" id="cancelLabEditorBtn">Volver</button>
-                  <button class="btn btn--primary" type="submit">Guardar</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="itemEditorView">
-        <div class="admin-container">
-          <div class="admin-panel">
-            <h2 class="section-title" id="itemEditorPageTitle">Material</h2>
-            <div class="lab-editor">
-              <h4 class="admin-panel__title" id="itemEditorTitle">Nuevo Material</h4>
-              <form class="modal-form" id="itemEditorForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="itemEditorMessage" role="alert"
-                  aria-live="polite"></div>
-                <div class="form-group">
-                  <label class="form-label" for="itemEditorName">Nombre</label>
-                  <input class="form-input" type="text" id="itemEditorName" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="itemEditorDescription">Descripcion</label>
-                  <input class="form-input" type="text" id="itemEditorDescription">
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="itemEditorStock">Stock Total</label>
-                  <input class="form-input" type="number" id="itemEditorStock" min="0" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="itemEditorLab">Laboratorio</label>
-                  <select class="form-select" id="itemEditorLab" required>
-                    <option value="">Seleccionar laboratorio</option>
-                  </select>
-                </div>
-                <div class="modal-actions">
-                  <button class="btn btn--secondary" type="button" id="cancelItemEditorBtn">Volver</button>
-                  <button class="btn btn--primary" type="submit">Guardar</button>
-                </div>
-              </form>
-            </div>
           </div>
         </div>
       </section>
@@ -377,7 +240,81 @@
           <div class="report-content" id="reportContent"></div>
         </div>
       </section>
+      <section class="view view--hidden" id="settingsView">
+        <div class="admin-container">
+          <div class="admin-panel" style="max-width: 600px; margin: 0 auto; display: block;">
+            <h2 class="section-title">Ajustes del Usuario</h2>
+            
+            <!-- Perfil Form -->
+            <div style="margin-bottom: 2rem;">
+              <h4 class="admin-panel__title"><i class="ph-duotone ph-user"></i> Datos Personales</h4>
+              <form class="modal-form" id="profileSettingsForm" novalidate>
+                <div class="form-note form-note--error form-note--hidden" id="profileSettingsMessage" role="alert" aria-live="polite"></div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="settingsFullName">Nombre Completo *</label>
+                  <input class="form-input" type="text" id="settingsFullName" required>
+                </div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="settingsFaculty">Facultad</label>
+                  <select class="form-select" id="settingsFaculty">
+                    <option value="">Seleccionar facultad</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="settingsProgram">Programa</label>
+                  <select class="form-select" id="settingsProgram">
+                    <option value="">Seleccionar programa</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="settingsSemester">Semestre</label>
+                  <input class="form-input" type="number" id="settingsSemester" min="1" max="20" placeholder="Ej: 5">
+                </div>
+                
+                <div class="modal-actions" style="justify-content: flex-end;">
+                  <button class="btn btn--primary" type="submit">Guardar Cambios</button>
+                </div>
+              </form>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
+
+            <!-- Password Form -->
+            <div>
+              <h4 class="admin-panel__title"><i class="ph-duotone ph-lock-key"></i> Cambiar Contraseña</h4>
+              <form class="modal-form" id="passwordSettingsForm" novalidate>
+                <div class="form-note form-note--error form-note--hidden" id="passwordSettingsMessage" role="alert" aria-live="polite"></div>
+                
+                <div class="form-group">
+                  <label class="form-label" for="settingsOldPassword">Contraseña Actual *</label>
+                  <input class="form-input" type="password" id="settingsOldPassword" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="settingsNewPassword">Nueva Contraseña *</label>
+                  <input class="form-input" type="password" id="settingsNewPassword" required minlength="6">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="settingsConfirmPassword">Confirmar Nueva Contraseña *</label>
+                  <input class="form-input" type="password" id="settingsConfirmPassword" required minlength="6">
+                </div>
+
+                <div class="modal-actions" style="justify-content: flex-end;">
+                  <button class="btn btn--primary" type="submit">Actualizar Contraseña</button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </section>
     </main>
+    </div>
 
   </div>
 
@@ -403,6 +340,71 @@
         <button class="btn btn--secondary" type="button" id="confirmModalCancel">Cancelar</button>
         <button class="btn btn--primary" type="button" id="confirmModalOk">Aceptar</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="labModal" role="dialog" aria-modal="true">
+    <div class="modal__content">
+      <h3 class="modal__title" id="labModalTitle">Nuevo Laboratorio</h3>
+      <form class="modal-form" id="labForm" novalidate>
+        <div class="form-note form-note--error form-note--hidden" id="labFormMessage" role="alert" aria-live="polite"></div>
+        <div class="form-group">
+          <label class="form-label" for="labName">Nombre</label>
+          <input class="form-input" type="text" id="labName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="labLocation">Ubicacion</label>
+          <input class="form-input" type="text" id="labLocation" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="labCapacity">Capacidad</label>
+          <input class="form-input" type="number" id="labCapacity" min="1" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" type="button" id="closeLabModal">Cancelar</button>
+          <button class="btn btn--primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="facultyModal" role="dialog" aria-modal="true">
+    <div class="modal__content">
+      <h3 class="modal__title" id="facultyModalTitle">Nueva Facultad</h3>
+      <form class="modal-form" id="facultyForm" novalidate>
+        <div class="form-note form-note--error form-note--hidden" id="facultyFormMessage" role="alert" aria-live="polite"></div>
+        <div class="form-group">
+          <label class="form-label" for="facultyName">Nombre de la Facultad</label>
+          <input class="form-input" type="text" id="facultyName" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" type="button" id="closeFacultyModal">Cancelar</button>
+          <button class="btn btn--primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="programModal" role="dialog" aria-modal="true">
+    <div class="modal__content">
+      <h3 class="modal__title" id="programModalTitle">Nuevo Programa</h3>
+      <form class="modal-form" id="programForm" novalidate>
+        <div class="form-note form-note--error form-note--hidden" id="programFormMessage" role="alert" aria-live="polite"></div>
+        <div class="form-group">
+          <label class="form-label" for="programName">Nombre del Programa</label>
+          <input class="form-input" type="text" id="programName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="programFaculty">Facultad</label>
+          <select class="form-select" id="programFaculty" required>
+            <option value="">Seleccione una facultad</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" type="button" id="closeProgramModal">Cancelar</button>
+          <button class="btn btn--primary" type="submit">Guardar</button>
+        </div>
+      </form>
     </div>
   </div>
 
