@@ -25,12 +25,12 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(rateLimit({
+const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-}));
+});
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -41,6 +41,7 @@ const FRONTEND_DIR = path.join(__dirname, '../../frontend');
 const TEMPLATE_DIR = path.join(FRONTEND_DIR, 'template');
 app.use(express.static(FRONTEND_DIR));
 
+app.use('/api', apiRateLimit);
 app.use('/api/auth', userRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/items', itemRoutes);

@@ -9,10 +9,6 @@
   let programs = [];
   let itemEditorMode = 'create';
   let itemEditorId = null;
-  let facultyEditorMode = 'create';
-  let facultyEditorId = null;
-  let programEditorMode = 'create';
-  let programEditorId = null;
   let adminFacultiesPage = 1;
   let adminProgramsPage = 1;
   let currentCalendarDate = new Date();
@@ -2501,18 +2497,6 @@
     try {
       faculties = await API.getFaculties();
       renderAdminFacultiesList();
-
-      // Update programs form faculty select
-      const select = $('#programFaculty');
-      if (select) {
-        select.innerHTML = '<option value="">Seleccione una facultad</option>';
-        faculties.forEach(f => {
-          const opt = document.createElement('option');
-          opt.value = f.id;
-          opt.textContent = f.name;
-          select.appendChild(opt);
-        });
-      }
     } catch (err) {
       container.innerHTML = renderErrorEmptyState(err);
     }
@@ -2583,7 +2567,7 @@
     container.querySelectorAll('.edit-faculty-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const fac = faculties.find(x => x.id === btn.dataset.id);
-        if (fac) openFacultyModal('edit', fac);
+        if (fac) window.location.href = '/faculty-editor.html?id=' + encodeURIComponent(fac.id);
       });
     });
 
@@ -2601,33 +2585,8 @@
     });
   }
 
-  function openFacultyModal(mode, faculty = null) {
-    facultyEditorMode = mode;
-    facultyEditorId = faculty ? faculty.id : null;
-
-    $('#facultyModalTitle').textContent = mode === 'create' ? 'Nueva Facultad' : 'Editar Facultad';
-    $('#facultyName').value = faculty ? faculty.name : '';
-    setFormMessage('facultyFormMessage', '');
-    $('#facultyModal').classList.add('modal--active');
-  }
-
-  $('#addFacultyBtn')?.addEventListener('click', () => openFacultyModal('create'));
-  $('#closeFacultyModal')?.addEventListener('click', () => $('#facultyModal').classList.remove('modal--active'));
-
-  $('#facultyForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = $('#facultyName').value;
-    try {
-      if (facultyEditorMode === 'create') {
-        await API.createFaculty({ name });
-      } else {
-        await API.updateFaculty(facultyEditorId, { name });
-      }
-      $('#facultyModal').classList.remove('modal--active');
-      loadFaculties();
-    } catch (err) {
-      setFormMessage('facultyFormMessage', getFriendlyErrorMessage(err));
-    }
+  $('#addFacultyBtn')?.addEventListener('click', () => {
+    window.location.href = '/faculty-editor.html';
   });
 
   // --- Admin Programs ---
@@ -2708,7 +2667,7 @@
     container.querySelectorAll('.edit-program-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const prog = programs.find(x => x.id === btn.dataset.id);
-        if (prog) openProgramModal('edit', prog);
+        if (prog) window.location.href = '/program-editor.html?id=' + encodeURIComponent(prog.id);
       });
     });
 
@@ -2726,35 +2685,8 @@
     });
   }
 
-  function openProgramModal(mode, program = null) {
-    programEditorMode = mode;
-    programEditorId = program ? program.id : null;
-
-    $('#programModalTitle').textContent = mode === 'create' ? 'Nuevo Programa' : 'Editar Programa';
-    $('#programName').value = program ? program.name : '';
-    $('#programFaculty').value = program ? program.faculty_id : '';
-    setFormMessage('programFormMessage', '');
-    $('#programModal').classList.add('modal--active');
-  }
-
-  $('#addProgramBtn')?.addEventListener('click', () => openProgramModal('create'));
-  $('#closeProgramModal')?.addEventListener('click', () => $('#programModal').classList.remove('modal--active'));
-
-  $('#programForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = $('#programName').value;
-    const faculty_id = $('#programFaculty').value;
-    try {
-      if (programEditorMode === 'create') {
-        await API.createProgram({ name, faculty_id });
-      } else {
-        await API.updateProgram(programEditorId, { name, faculty_id });
-      }
-      $('#programModal').classList.remove('modal--active');
-      loadPrograms();
-    } catch (err) {
-      setFormMessage('programFormMessage', getFriendlyErrorMessage(err));
-    }
+  $('#addProgramBtn')?.addEventListener('click', () => {
+    window.location.href = '/program-editor.html';
   });
 
   // --- Init ---

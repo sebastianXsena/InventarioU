@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facultad - Reserva De Laboratorios</title>
+  <script>
+    (function () {
+      try {
+        const pref = localStorage.getItem('theme') || 'system';
+        const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const effective = pref === 'system' ? (systemDark ? 'dark' : 'light') : pref;
+        document.documentElement.classList.toggle('theme-dark', effective === 'dark');
+        document.documentElement.dataset.theme = effective;
+      } catch (_) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+  <div class="layout">
+    <div id="shell-sidebar"></div>
+
+    <div class="main-wrapper" style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <div id="shell-topbar"></div>
+
+      <main class="main" style="flex:1;margin:0;max-width:none;">
+        <div class="admin-container">
+          <div class="admin-panel">
+            <h2 class="section-title" id="pageTitle">Facultad</h2>
+            <div class="lab-editor">
+              <h4 class="admin-panel__title" id="facultyEditorTitle">Nueva Facultad</h4>
+              <form class="modal-form" id="facultyEditorForm" novalidate>
+                <div class="form-note form-note--error form-note--hidden" id="facultyEditorMessage" role="alert" aria-live="polite"></div>
+
+                <div class="form-group">
+                  <label class="form-label" for="facultyEditorName">Nombre de la Facultad *</label>
+                  <input class="form-input" type="text" id="facultyEditorName" required placeholder="Ej: Facultad de Ingeniería">
+                </div>
+
+                <div class="modal-actions">
+                  <button class="btn btn--secondary" type="button" id="cancelFacultyEditorBtn">
+                    <i class="ph ph-arrow-left"></i> Volver
+                  </button>
+                  <button class="btn btn--primary" type="submit">
+                    <i class="ph ph-floppy-disk"></i> Guardar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal" id="alertModal" role="dialog" aria-modal="true" aria-labelledby="alertModalTitle">
+    <div class="modal__content">
+      <h3 class="modal__title" id="alertModalTitle">Alerta</h3>
+      <p id="alertModalMessage"></p>
+      <div class="modal-actions">
+        <button class="btn btn--primary" type="button" id="alertModalOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/shell.js"></script>
+  <script src="/js/faculty-editor.js"></script>
+</body>
+
+</html>
