@@ -13,6 +13,9 @@
   let facultyEditorId = null;
   let programEditorMode = 'create';
   let programEditorId = null;
+  let adminFacultiesPage = 1;
+  let adminProgramsPage = 1;
+  let currentCalendarDate = new Date();
 
   // --- Theme ---
   const THEME_KEY = 'theme'; // 'system' | 'light' | 'dark'
@@ -25,14 +28,29 @@
     return pref === 'dark' ? 'dark' : 'light';
   }
 
-  function applyTheme(theme) {
+  function applyTheme(theme, animate = false) {
     document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('theme-dark', theme === 'dark');
     document.documentElement.dataset.theme = theme;
     const btn = $('#themeToggleBtn');
-    if (btn) btn.innerHTML = theme === 'dark'
-      ? '<i class="ph-duotone ph-sun"></i>'
-      : '<i class="ph-duotone ph-moon"></i>';
+    if (btn) {
+      if (animate) {
+        btn.className = 'btn btn--icon theme-toggle--spin-out';
+        setTimeout(() => {
+          btn.innerHTML = theme === 'dark'
+            ? '<i class="ph-duotone ph-sun"></i>'
+            : '<i class="ph-duotone ph-moon"></i>';
+          btn.className = 'btn btn--icon theme-toggle--spin-in';
+          setTimeout(() => {
+            btn.className = 'btn btn--icon';
+          }, 300);
+        }, 220);
+      } else {
+        btn.innerHTML = theme === 'dark'
+          ? '<i class="ph-duotone ph-sun"></i>'
+          : '<i class="ph-duotone ph-moon"></i>';
+      }
+    }
     setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 420);
   }
 
@@ -46,7 +64,7 @@
         const current = getEffectiveTheme();
         const next = current === 'dark' ? 'light' : 'dark';
         setThemePref(next);
-        applyTheme(next);
+        applyTheme(next, true);
       });
     }
 
@@ -314,6 +332,25 @@
   }
 
   // --- Navigation ---
+  function updateNavIndicator() {
+    const activeItem = document.querySelector('.header--sidebar .nav__item .nav__link--active');
+    const indicator = document.getElementById('navIndicator');
+    if (!activeItem || !indicator) {
+      if (indicator) indicator.style.opacity = '0';
+      return;
+    }
+
+    const navList = document.querySelector('.header--sidebar .nav__list');
+    if (!navList) return;
+
+    const activeRect = activeItem.getBoundingClientRect();
+    const listRect = navList.getBoundingClientRect();
+
+    indicator.style.top = `${activeRect.top - listRect.top}px`;
+    indicator.style.height = `${activeRect.height}px`;
+    indicator.style.opacity = '1';
+  }
+
   function showView(viewId) {
     $$('.view').forEach((v) => v.classList.add('view--hidden'));
     const target =
@@ -331,6 +368,7 @@
     $$('.nav__link').forEach((l) => l.classList.remove('nav__link--active'));
     const activeLink = $(`.nav__item[data-view="${viewId}"] .nav__link`);
     if (activeLink) activeLink.classList.add('nav__link--active');
+    requestAnimationFrame(updateNavIndicator);
   }
 
   function selectAdminTab(tabName) {
@@ -466,6 +504,7 @@
     $('#themeToggleBtn').style.display = loggedIn ? 'inline-flex' : 'none';
     const settingsIconBtn = $('#navSettingsIconBtn');
     if (settingsIconBtn) settingsIconBtn.style.display = loggedIn ? 'inline-flex' : 'none';
+    requestAnimationFrame(updateNavIndicator);
   }
 
   // --- Auth ---
@@ -500,6 +539,30 @@
     currentUser = null;
     updateNav();
     navigateTo('login');
+  }
+
+  async function handleForgotPasswordSubmit(e) {
+    e.preventDefault();
+    setFormMessage('forgotPasswordFormMessage', '');
+    const email = $('#forgotPasswordEmail').value.trim();
+
+    if (!email) {
+      setFormMessage('forgotPasswordFormMessage', 'Escribe tu email para continuar.');
+      return;
+    }
+
+    try {
+      const res = await API.forgotPassword({ email });
+      $('#forgotPasswordModal').classList.remove('modal--active');
+      $('#forgotPasswordForm').reset();
+      
+      showAlert(
+        `Tu contraseña temporal es: "${res.tempPassword}"\n\nÚsala para iniciar sesión y cámbiala de inmediato en la pestaña de Ajustes.`,
+        'Contraseña Restablecida'
+      );
+    } catch (err) {
+      setFormMessage('forgotPasswordFormMessage', getFriendlyErrorMessage(err) || 'No se pudo restablecer la contraseña.');
+    }
   }
 
   // --- Settings ---
@@ -607,6 +670,7 @@
     try {
       labs = await API.getLabs();
       populateLabSelects();
+      renderAdminLabs();
     } catch (err) {
       console.error('Error loading labs:', err);
     }
@@ -632,9 +696,6 @@
         });
       el.value = val;
     });
-
-    // Admin labs list
-    renderAdminLabs();
   }
 
   // --- Calendar ---
@@ -688,6 +749,8 @@
       if (grid) {
         grid.innerHTML = '<div class="empty-state">Selecciona un laboratorio para ver la disponibilidad semanal.</div>';
       }
+      const navContainer = $('#calendarNavigation');
+      if (navContainer) navContainer.style.display = 'none';
       return;
     }
 
@@ -695,7 +758,7 @@
     grid.innerHTML = '<div class="loading">Cargando</div>';
 
     try {
-      const selected = new Date();
+      const selected = currentCalendarDate;
       const weekStart = getWeekStartMonday(selected);
       const weekDays = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart);
@@ -704,6 +767,22 @@
       });
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
+
+      console.log('[DEBUG CALENDAR] currentCalendarDate:', currentCalendarDate.toDateString());
+      console.log('[DEBUG CALENDAR] weekStart:', weekStart.toDateString(), 'weekEnd:', weekEnd.toDateString());
+
+      const navContainer = $('#calendarNavigation');
+      if (navContainer) {
+        navContainer.style.display = 'flex';
+        const rangeLabel = $('#calendarWeekRangeLabel');
+        if (rangeLabel) {
+          const startOpt = { day: 'numeric', month: 'short' };
+          const endOpt = { day: 'numeric', month: 'short', year: 'numeric' };
+          const startStr = weekStart.toLocaleDateString('es-ES', startOpt);
+          const endStr = weekEnd.toLocaleDateString('es-ES', endOpt);
+          rangeLabel.textContent = `${startStr} - ${endStr}`;
+        }
+      }
 
       const start = formatDateYYYYMMDD(weekStart) + 'T00:00:00';
       const end = formatDateYYYYMMDD(weekEnd) + 'T23:59:59';
@@ -1713,7 +1792,7 @@
           <div class="admin-item__title">${lab.name}</div>
           <div class="admin-item__meta">📍 ${lab.location} | 👥 Capacidad: ${lab.capacity}</div>
         </div>
-        <span class="status-badge status-badge--${lab.status === 'active' ? 'approved' : 'rejected'}">${lab.status === 'active' ? 'Activo' : 'Mantenimiento'}</span>
+        <span class="status-badge status-badge--${lab.status === 'active' ? 'approved' : 'rejected'}"><span class="status-badge__text">${lab.status === 'active' ? 'Activo' : 'Mantenimiento'}</span></span>
         <div class="admin-item__actions">
           <button class="btn btn--secondary btn--sm" data-action="edit-lab" data-id="${lab.id}"><i class="ph ph-pencil-simple"></i> Editar</button>
           <button class="btn btn--secondary btn--sm" data-action="toggle-lab" data-id="${lab.id}"><i class="ph ${lab.status === 'active' ? 'ph-power' : 'ph-check'}"></i> ${lab.status === 'active' ? 'Desactivar' : 'Activar'}</button>
@@ -1770,11 +1849,86 @@
       btn.addEventListener('click', async function () {
         const lab = labs.find((l) => String(l.id) === String(this.dataset.id));
         if (!lab) return;
+
+        const card = this.closest('.admin-item');
+        const badge = card ? card.querySelector('.status-badge') : null;
+
+        if (card) {
+          card.classList.add('admin-item--updating');
+        }
+        this.disabled = true;
+
         const newStatus = lab.status === 'active' ? 'maintenance' : 'active';
         try {
           await API.updateLab(lab.id, { status: newStatus });
-          loadLabs();
+
+          // Update local state in memory
+          lab.status = newStatus;
+
+          // Update DOM in-place with animations
+          if (badge) {
+            const textSpan = badge.querySelector('.status-badge__text') || badge;
+
+            // 1. Prepare colors for the sweep and transition classes
+            badge.className = 'status-badge';
+            if (newStatus === 'active') {
+              badge.classList.add('status-badge--approved-sweep');
+            } else {
+              badge.classList.add('status-badge--rejected-sweep');
+            }
+
+            // 2. Hide text (slide to the right)
+            textSpan.classList.add('status-badge__text--hidden-right');
+
+            // Force reflow
+            badge.offsetHeight;
+
+            // 3. Trigger sweep animation (starts from left to right)
+            badge.classList.add('status-badge--sweeping');
+
+            // 4. Change text content and slide it back in from the left
+            setTimeout(() => {
+              textSpan.textContent = newStatus === 'active' ? 'Activo' : 'Mantenimiento';
+              textSpan.classList.remove('status-badge__text--hidden-right');
+              textSpan.classList.add('status-badge__text--hidden-left');
+
+              // Force reflow
+              badge.offsetHeight;
+
+              textSpan.classList.remove('status-badge__text--hidden-left');
+            }, 200);
+
+            // 5. Finalize animation state (550ms, once sweep is finished)
+            setTimeout(() => {
+              badge.className = 'status-badge';
+              if (newStatus === 'active') {
+                badge.classList.add('status-badge--approved', 'status-badge--pulse-approved');
+              } else {
+                badge.classList.add('status-badge--rejected', 'status-badge--pulse-rejected');
+              }
+
+              // Remove pulse classes after it completes
+              setTimeout(() => {
+                badge.classList.remove('status-badge--pulse-approved', 'status-badge--pulse-rejected');
+              }, 600);
+            }, 550);
+          }
+
+          // Update the button icon and text
+          this.innerHTML = `<i class="ph ${newStatus === 'active' ? 'ph-power' : 'ph-check'}"></i> ${newStatus === 'active' ? 'Desactivar' : 'Activar'}`;
+
+          // Keep selects synchronized on other views (e.g. calendar/reservations)
+          populateLabSelects();
+
+          // After all animations complete, clean up card updating states and button
+          setTimeout(() => {
+            if (card) card.classList.remove('admin-item--updating');
+            this.disabled = false;
+          }, 600);
+
         } catch (err) {
+          if (card) card.classList.remove('admin-item--updating');
+          this.disabled = false;
           showAlert(getFriendlyErrorMessage(err, { action: 'update', entity: 'lab' }), 'No se pudo actualizar el laboratorio');
         }
       });
@@ -2364,30 +2518,67 @@
     }
   }
 
+  const ADMIN_FACULTIES_PAGE_SIZE = 5;
+
   function renderAdminFacultiesList() {
     const container = $('#adminFacultiesList');
+    if (!container) return;
+
     if (faculties.length === 0) {
       container.innerHTML = '<div class="empty-state">No hay facultades registradas</div>';
       return;
     }
 
-    container.innerHTML = faculties.map(f => `
-      <div class="admin-item-card">
-        <div class="admin-item-card__header">
-          <div class="admin-item-card__info">
-            <h4 class="admin-item-card__title">${f.name}</h4>
-          </div>
-          <div class="admin-item-card__actions">
-            <button class="btn btn--icon btn--outline edit-faculty-btn" data-id="${f.id}" title="Editar">
-              <i class="ph-duotone ph-pencil"></i>
-            </button>
-            <button class="btn btn--icon btn--outline delete-faculty-btn" data-id="${f.id}" title="Eliminar">
-              <i class="ph-duotone ph-trash"></i>
-            </button>
-          </div>
+    const start = (adminFacultiesPage - 1) * ADMIN_FACULTIES_PAGE_SIZE;
+    const end = start + ADMIN_FACULTIES_PAGE_SIZE;
+    const pageItems = faculties.slice(start, end);
+
+    let html = pageItems.map(f => `
+      <div class="admin-item">
+        <div class="admin-item__info">
+          <div class="admin-item__title">${f.name}</div>
+        </div>
+        <div class="admin-item__actions">
+          <button class="btn btn--secondary btn--sm edit-faculty-btn" data-id="${f.id}"><i class="ph ph-pencil-simple"></i> Editar</button>
+          <button class="btn btn--danger btn--sm delete-faculty-btn" data-id="${f.id}"><i class="ph ph-trash"></i> Eliminar</button>
         </div>
       </div>
     `).join('');
+
+    // Paginator
+    const totalPages = Math.ceil(faculties.length / ADMIN_FACULTIES_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnFacultiesPrev" ${adminFacultiesPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${adminFacultiesPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnFacultiesNext" ${adminFacultiesPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    const btnPrev = $('#btnFacultiesPrev');
+    const btnNext = $('#btnFacultiesNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (adminFacultiesPage > 1) {
+          adminFacultiesPage--;
+          renderAdminFacultiesList();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (adminFacultiesPage < totalPages) {
+          adminFacultiesPage++;
+          renderAdminFacultiesList();
+        }
+      });
+    }
 
     container.querySelectorAll('.edit-faculty-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2451,31 +2642,68 @@
     }
   }
 
+  const ADMIN_PROGRAMS_PAGE_SIZE = 5;
+
   function renderAdminProgramsList() {
     const container = $('#adminProgramsList');
+    if (!container) return;
+
     if (programs.length === 0) {
       container.innerHTML = '<div class="empty-state">No hay programas registrados</div>';
       return;
     }
 
-    container.innerHTML = programs.map(p => `
-      <div class="admin-item-card">
-        <div class="admin-item-card__header">
-          <div class="admin-item-card__info">
-            <h4 class="admin-item-card__title">${p.name}</h4>
-            <p class="admin-item-card__meta"><i class="ph-duotone ph-buildings"></i> ${p.faculty_name}</p>
-          </div>
-          <div class="admin-item-card__actions">
-            <button class="btn btn--icon btn--outline edit-program-btn" data-id="${p.id}" title="Editar">
-              <i class="ph-duotone ph-pencil"></i>
-            </button>
-            <button class="btn btn--icon btn--outline delete-program-btn" data-id="${p.id}" title="Eliminar">
-              <i class="ph-duotone ph-trash"></i>
-            </button>
-          </div>
+    const start = (adminProgramsPage - 1) * ADMIN_PROGRAMS_PAGE_SIZE;
+    const end = start + ADMIN_PROGRAMS_PAGE_SIZE;
+    const pageItems = programs.slice(start, end);
+
+    let html = pageItems.map(p => `
+      <div class="admin-item">
+        <div class="admin-item__info">
+          <div class="admin-item__title">${p.name}</div>
+          <div class="admin-item__meta"><i class="ph-duotone ph-buildings"></i> ${p.faculty_name}</div>
+        </div>
+        <div class="admin-item__actions">
+          <button class="btn btn--secondary btn--sm edit-program-btn" data-id="${p.id}"><i class="ph ph-pencil-simple"></i> Editar</button>
+          <button class="btn btn--danger btn--sm delete-program-btn" data-id="${p.id}"><i class="ph ph-trash"></i> Eliminar</button>
         </div>
       </div>
     `).join('');
+
+    // Paginator
+    const totalPages = Math.ceil(programs.length / ADMIN_PROGRAMS_PAGE_SIZE);
+    if (totalPages > 1) {
+      html += `
+        <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; align-items: center;">
+          <button class="btn btn--outline btn--sm" id="btnProgramsPrev" ${adminProgramsPage === 1 ? 'disabled' : ''}>Anterior</button>
+          <span style="font-size: 0.875rem; font-weight: 500;">Página ${adminProgramsPage} de ${totalPages}</span>
+          <button class="btn btn--outline btn--sm" id="btnProgramsNext" ${adminProgramsPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+
+    const btnPrev = $('#btnProgramsPrev');
+    const btnNext = $('#btnProgramsNext');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        if (adminProgramsPage > 1) {
+          adminProgramsPage--;
+          renderAdminProgramsList();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        if (adminProgramsPage < totalPages) {
+          adminProgramsPage++;
+          renderAdminProgramsList();
+        }
+      });
+    }
 
     container.querySelectorAll('.edit-program-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2537,14 +2765,38 @@
     initAdminTabs();
     initModals();
 
-    // Event listeners
     $('#loginForm').addEventListener('submit', handleLogin);
     $('#logoutBtn').addEventListener('click', handleLogout);
+
+    $('#forgotPasswordLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      setFormMessage('forgotPasswordFormMessage', '');
+      $('#forgotPasswordForm').reset();
+      $('#forgotPasswordModal').classList.add('modal--active');
+    });
+    $('#closeForgotPasswordModal')?.addEventListener('click', () => {
+      $('#forgotPasswordModal').classList.remove('modal--active');
+    });
+    $('#forgotPasswordForm')?.addEventListener('submit', handleForgotPasswordSubmit);
 
     $('#profileSettingsForm')?.addEventListener('submit', handleProfileSettingsSubmit);
     $('#passwordSettingsForm')?.addEventListener('submit', handlePasswordSettingsSubmit);
 
     $('#loadCalendarBtn').addEventListener('click', loadCalendar);
+    $('#calendarPrevWeekBtn')?.addEventListener('click', () => {
+      console.log('[DEBUG CLICK] Clicked Prev Week');
+      currentCalendarDate.setDate(currentCalendarDate.getDate() - 7);
+      loadCalendar();
+    });
+    $('#calendarNextWeekBtn')?.addEventListener('click', () => {
+      console.log('[DEBUG CLICK] Clicked Next Week');
+      currentCalendarDate.setDate(currentCalendarDate.getDate() + 7);
+      loadCalendar();
+    });
+    $('#calendarLabSelect')?.addEventListener('change', () => {
+      console.log('[DEBUG CLICK] Lab changed. Resetting currentCalendarDate');
+      currentCalendarDate = new Date();
+    });
     $('#reserveLab').addEventListener('change', onLabChangeForReserve);
     $('#reserveForm').addEventListener('submit', handleReserve);
     $('#reserveDate')?.addEventListener('change', scheduleReserveAvailabilityCheck);
@@ -2587,6 +2839,8 @@
         navigateTo(view);
       });
     });
+
+    window.addEventListener('resize', () => requestAnimationFrame(updateNavIndicator));
 
     // Try auto-login
     if (API.getToken()) {

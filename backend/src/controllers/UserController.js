@@ -58,4 +58,17 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, getProfile, getAllUsers, updateProfile, changePassword };
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'El email es obligatorio' });
+    }
+    const result = await userService.forgotPassword(email);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getProfile, getAllUsers, updateProfile, changePassword, forgotPassword };

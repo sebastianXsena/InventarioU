@@ -19,14 +19,29 @@
     return pref === 'dark' ? 'dark' : 'light';
   }
 
-  function applyTheme(theme) {
+  function applyTheme(theme, animate = false) {
     document.documentElement.classList.add('theme-transitioning');
     document.documentElement.classList.toggle('theme-dark', theme === 'dark');
     document.documentElement.dataset.theme = theme;
     const btn = document.getElementById('themeToggleBtn');
-    if (btn) btn.innerHTML = theme === 'dark'
-      ? '<i class="ph-duotone ph-sun"></i>'
-      : '<i class="ph-duotone ph-moon"></i>';
+    if (btn) {
+      if (animate) {
+        btn.className = 'btn btn--icon theme-toggle--spin-out';
+        setTimeout(() => {
+          btn.innerHTML = theme === 'dark'
+            ? '<i class="ph-duotone ph-sun"></i>'
+            : '<i class="ph-duotone ph-moon"></i>';
+          btn.className = 'btn btn--icon theme-toggle--spin-in';
+          setTimeout(() => {
+            btn.className = 'btn btn--icon';
+          }, 300);
+        }, 220);
+      } else {
+        btn.innerHTML = theme === 'dark'
+          ? '<i class="ph-duotone ph-sun"></i>'
+          : '<i class="ph-duotone ph-moon"></i>';
+      }
+    }
     setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 420);
   }
 
@@ -50,6 +65,7 @@
         <nav class="nav" id="mainNav">
           <ul class="nav__list">
             ${items}
+            <div class="nav__indicator" id="navIndicator"></div>
           </ul>
         </nav>
       </div>
@@ -100,7 +116,7 @@
     document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
       const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
       localStorage.setItem(THEME_KEY, next);
-      applyTheme(next);
+      applyTheme(next, true);
     });
 
     document.getElementById('logoutBtn')?.addEventListener('click', () => {

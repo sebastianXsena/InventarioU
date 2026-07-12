@@ -38,6 +38,7 @@ app.use(sanitizeInput);
 
 // Serve the root-level frontend/ (InventarioU/frontend) instead of backend/public
 const FRONTEND_DIR = path.join(__dirname, '../../frontend');
+const TEMPLATE_DIR = path.join(FRONTEND_DIR, 'template');
 app.use(express.static(FRONTEND_DIR));
 
 app.use('/api/auth', userRoutes);
@@ -48,7 +49,7 @@ app.use('/api/faculties', facultyRoutes);
 app.use('/api/programs', programRoutes);
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+  res.sendFile(path.join(TEMPLATE_DIR, 'index.html'));
 });
 
 app.use((req, res) => {

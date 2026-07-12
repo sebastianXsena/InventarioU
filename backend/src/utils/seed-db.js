@@ -7,29 +7,56 @@ async function seedDatabase() {
   try {
     await client.query('BEGIN');
 
-    console.log('[SEED] Creating users...');
-    const adminHash = await bcrypt.hash('admin123', 12);
-    const studentHash = await bcrypt.hash('student123', 12);
-
+    console.log('[SEED] Cleaning database tables...');
     await client.query('DELETE FROM reservation_items');
     await client.query('DELETE FROM reservations');
     await client.query('DELETE FROM items');
     await client.query('DELETE FROM laboratories');
     await client.query('DELETE FROM users');
+    await client.query('DELETE FROM programs');
+    await client.query('DELETE FROM faculties');
+
+    console.log('[SEED] Creating faculties...');
+    const facultyIng = await client.query(
+      "INSERT INTO faculties (name) VALUES ($1) RETURNING id",
+      ['Facultad de Ingeniería']
+    );
+    const facultySalud = await client.query(
+      "INSERT INTO faculties (name) VALUES ($1) RETURNING id",
+      ['Facultad de Ciencias de la Salud']
+    );
+
+    console.log('[SEED] Creating programs...');
+    const progSistemas = await client.query(
+      "INSERT INTO programs (name, faculty_id) VALUES ($1, $2) RETURNING id",
+      ['Ingeniería de Sistemas', facultyIng.rows[0].id]
+    );
+    const progIndustrial = await client.query(
+      "INSERT INTO programs (name, faculty_id) VALUES ($1, $2) RETURNING id",
+      ['Ingeniería Industrial', facultyIng.rows[0].id]
+    );
+    const progEnfermeria = await client.query(
+      "INSERT INTO programs (name, faculty_id) VALUES ($1, $2) RETURNING id",
+      ['Enfermería', facultySalud.rows[0].id]
+    );
+
+    console.log('[SEED] Creating users...');
+    const adminHash = await bcrypt.hash('admin123', 12);
+    const studentHash = await bcrypt.hash('student123', 12);
 
     const admin = await client.query(
-      "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id",
+      "INSERT INTO users (full_name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id",
       ['Admin User', 'admin@lab.com', adminHash, 'admin']
     );
 
     const student1 = await client.query(
-      "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id",
-      ['Ana Garcia', 'ana@lab.com', studentHash, 'student']
+      "INSERT INTO users (full_name, email, password_hash, role, faculty_id, program_id, semester) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+      ['Ana Garcia', 'ana@lab.com', studentHash, 'student', facultyIng.rows[0].id, progSistemas.rows[0].id, 5]
     );
 
     const student2 = await client.query(
-      "INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id",
-      ['Carlos Lopez', 'carlos@lab.com', studentHash, 'student']
+      "INSERT INTO users (full_name, email, password_hash, role, faculty_id, program_id, semester) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+      ['Carlos Lopez', 'carlos@lab.com', studentHash, 'student', facultySalud.rows[0].id, progEnfermeria.rows[0].id, 3]
     );
 
     console.log('[SEED] Creating laboratories...');

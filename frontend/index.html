@@ -51,7 +51,7 @@
             <li class="nav__item nav__item--hidden" data-view="reports">
               <a href="#reports" class="nav__link" id="navReports"><i class="ph-duotone ph-chart-bar"></i> Reportes</a>
             </li>
-
+            <div class="nav__indicator" id="navIndicator"></div>
           </ul>
         </nav>
       </div>
@@ -91,6 +91,9 @@
                 <input class="form-input" type="password" id="loginPassword" required placeholder="••••••••">
               </div>
             </div>
+            <div style="text-align: right; margin-top: -0.5rem; margin-bottom: 1.25rem;">
+              <a href="#" id="forgotPasswordLink" style="font-size: 0.85rem; color: #4f46e5; text-decoration: none; font-weight: 500;">¿Olvidaste tu contraseña?</a>
+            </div>
             <button class="btn btn--primary btn--full auth-btn" type="submit">Ingresar <i class="ph-duotone ph-arrow-right"></i></button>
           </form>
         </div>
@@ -106,6 +109,11 @@
               </select>
               <button class="btn btn--primary" id="loadCalendarBtn">Cargar</button>
             </div>
+          </div>
+          <div class="calendar-navigation" id="calendarNavigation" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e2e8f0); padding: 0.75rem 1rem; border-radius: 8px;">
+            <button class="btn btn--outline btn--sm" id="calendarPrevWeekBtn" type="button"><i class="ph ph-caret-left"></i> Semana Anterior</button>
+            <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);" id="calendarWeekRangeLabel"></span>
+            <button class="btn btn--outline btn--sm" id="calendarNextWeekBtn" type="button">Semana Siguiente <i class="ph ph-caret-right"></i></button>
           </div>
           <div class="calendar-grid" id="calendarGrid"></div>
         </div>
@@ -403,6 +411,26 @@
         <div class="modal-actions">
           <button class="btn btn--secondary" type="button" id="closeProgramModal">Cancelar</button>
           <button class="btn btn--primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="forgotPasswordModal" role="dialog" aria-modal="true">
+    <div class="modal__content">
+      <h3 class="modal__title">Recuperar Contraseña</h3>
+      <form class="modal-form" id="forgotPasswordForm" novalidate>
+        <div class="form-note form-note--error form-note--hidden" id="forgotPasswordFormMessage" role="alert" aria-live="polite"></div>
+        <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 1.5rem; line-height: 1.5;">
+          Ingresa tu dirección de correo electrónico registrado. Restableceremos tu contraseña temporalmente para que puedas acceder.
+        </p>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" for="forgotPasswordEmail">Email</label>
+          <input class="form-input" type="email" id="forgotPasswordEmail" required placeholder="tu@email.com">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" type="button" id="closeForgotPasswordModal">Cancelar</button>
+          <button class="btn btn--primary" type="submit">Restablecer</button>
         </div>
       </form>
     </div>

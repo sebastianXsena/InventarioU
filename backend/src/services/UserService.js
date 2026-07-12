@@ -95,6 +95,25 @@ class UserService {
     await userRepo.updatePassword(id, newHash);
     return { success: true };
   }
+
+  async forgotPassword(email) {
+    const user = await userRepo.findByEmail(email);
+    if (!user) {
+      const err = new Error('El correo electrónico no se encuentra registrado');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Generate temporary 8-character password
+    const tempPassword = Math.random().toString(36).substring(2, 10);
+    const hash = await bcrypt.hash(tempPassword, 10);
+    await userRepo.updatePassword(user.id, hash);
+
+    return {
+      message: 'Contraseña restablecida exitosamente',
+      tempPassword
+    };
+  }
 }
 
 module.exports = new UserService();

@@ -26,7 +26,7 @@ const API = {
       method,
       headers: this.headers(),
     };
-    if (body && (method === 'POST' || method === 'PATCH')) {
+    if (body && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
       opts.body = JSON.stringify(body);
     }
 
@@ -63,6 +63,7 @@ const API = {
   // Auth
   register(data) { return this.post('/auth/register', data); },
   login(data) { return this.post('/auth/login', data); },
+  forgotPassword(data) { return this.post('/auth/forgot-password', data); },
   getProfile() { return this.get('/auth/me'); },
   updateProfile(data) { return this.put('/auth/me', data); },
   changePassword(data) { return this.put('/auth/me/password', data); },
