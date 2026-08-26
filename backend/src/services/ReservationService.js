@@ -261,7 +261,40 @@ class ReservationService {
   }
 
   async getReportByDateRange(startDate, endDate) {
-    return reservationRepo.getReportByDateRange(startDate, endDate);
+    const rows = await reservationRepo.getReportByDateRange(startDate, endDate);
+    const byStatus = {};
+    const byLab = new Map();
+    const byDate = new Map();
+    const topItems = new Map();
+
+    rows.forEach((reservation) => {
+      byStatus[reservation.status] = (byStatus[reservation.status] || 0) + 1;
+
+      const lab = byLab.get(reservation.lab_name) || { lab_name: reservation.lab_name, count: 0 };
+      lab.count += 1;
+      byLab.set(reservation.lab_name, lab);
+
+      const date = new Date(reservation.start_time).toISOString().slice(0, 10);
+      byDate.set(date, (byDate.get(date) || 0) + 1);
+
+      const items = Array.isArray(reservation.items_used) ? reservation.items_used : [];
+      items.forEach((item) => {
+        if (!item.item_name) return;
+        topItems.set(item.item_name, (topItems.get(item.item_name) || 0) + Number(item.quantity || 0));
+      });
+    });
+
+    return {
+      total_reservations: rows.length,
+      approved_reservations: byStatus.approved || 0,
+      cancelled_reservations: byStatus.cancelled || 0,
+      by_status: byStatus,
+      by_lab: Array.from(byLab.values()).sort((a, b) => b.count - a.count),
+      trend: Array.from(byDate, ([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)),
+      top_items: Array.from(topItems, ([item_name, total_requested]) => ({ item_name, total_requested }))
+        .sort((a, b) => b.total_requested - a.total_requested)
+        .slice(0, 10),
+    };
   }
 }
 

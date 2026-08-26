@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -66,263 +66,7 @@
         </div>
       </header>
 
-      <main class="main" style="flex: 1; margin: 0; max-width: none;">
-      <section class="view" id="loginView">
-        <div class="auth-card">
-          <div class="auth-card__header">
-            <div class="auth-card__icon"><i class="ph-duotone ph-lock-key"></i></div>
-            <h2 class="auth-form__title">Bienvenido</h2>
-            <p class="auth-form__subtitle">Ingresa tus credenciales para acceder</p>
-          </div>
-          <form class="auth-form" id="loginForm" novalidate>
-            <div class="form-note form-note--error form-note--hidden" id="loginFormMessage" role="alert"
-              aria-live="polite"></div>
-            <div class="form-group">
-              <label class="form-label" for="loginEmail">Email</label>
-              <div class="form-input-with-icon">
-                <i class="ph-duotone ph-envelope"></i>
-                <input class="form-input" type="email" id="loginEmail" required placeholder="tu@email.com">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="loginPassword">Contraseña</label>
-              <div class="form-input-with-icon">
-                <i class="ph-duotone ph-password"></i>
-                <input class="form-input" type="password" id="loginPassword" required placeholder="••••••••">
-              </div>
-            </div>
-            <div style="text-align: right; margin-top: -0.5rem; margin-bottom: 1.25rem;">
-              <a href="#" id="forgotPasswordLink" style="font-size: 0.85rem; color: #4f46e5; text-decoration: none; font-weight: 500;">¿Olvidaste tu contraseña?</a>
-            </div>
-            <button class="btn btn--primary btn--full auth-btn" type="submit">Ingresar <i class="ph-duotone ph-arrow-right"></i></button>
-          </form>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="calendarView">
-        <div class="calendar-container">
-          <div class="calendar-header">
-            <h2 class="calendar-header__title">Disponibilidad de Laboratorios</h2>
-            <div class="calendar-header__controls">
-              <select class="form-select" id="calendarLabSelect">
-                <option value="">Seleccionar laboratorio</option>
-              </select>
-              <button class="btn btn--primary" id="loadCalendarBtn">Cargar</button>
-            </div>
-          </div>
-          <div class="calendar-navigation" id="calendarNavigation" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e2e8f0); padding: 0.75rem 1rem; border-radius: 8px;">
-            <button class="btn btn--outline btn--sm" id="calendarPrevWeekBtn" type="button"><i class="ph ph-caret-left"></i> Semana Anterior</button>
-            <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);" id="calendarWeekRangeLabel"></span>
-            <button class="btn btn--outline btn--sm" id="calendarNextWeekBtn" type="button">Semana Siguiente <i class="ph ph-caret-right"></i></button>
-          </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="reserveView">
-        <div class="reserve-container">
-          <h2 class="section-title">Nueva Reserva de Laboratorio</h2>
-          <form class="reserve-form" id="reserveForm" novalidate>
-            <div class="form-note form-note--error form-note--hidden" id="reserveFormMessage" role="alert"
-              aria-live="polite"></div>
-            <div class="form-row">
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reserveLab">Laboratorio *</label>
-                <select class="form-select" id="reserveLab" required>
-                  <option value="">Seleccionar laboratorio</option>
-                </select>
-              </div>
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reserveDate">Fecha *</label>
-                <input class="form-input" type="date" id="reserveDate" required>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reserveStartTime">Hora inicio *</label>
-                <input class="form-input" type="time" id="reserveStartTime" required>
-              </div>
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reserveEndTime">Hora fin *</label>
-                <input class="form-input" type="time" id="reserveEndTime" required>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Materiales requeridos</label>
-              <div class="items-selector" id="itemsSelector">
-                <p class="items-selector__hint">Selecciona un laboratorio para ver materiales disponibles</p>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="reserveNotes">Notas</label>
-              <textarea class="form-input form-input--textarea" id="reserveNotes" maxlength="500"
-                placeholder="Motivo de la reserva, detalles adicionales..."></textarea>
-            </div>
-
-            <button class="btn btn--primary btn--lg" type="submit">Solicitar Reserva</button>
-          </form>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="my-reservationsView">
-        <div class="reservations-container">
-          <h2 class="section-title">Mis Reservas</h2>
-          <div class="reservations-list" id="myReservationsList"></div>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="adminView">
-        <div class="admin-container">
-          <h2 class="section-title">Panel de Administracion</h2>
-
-          <div class="admin-tabs">
-            <button class="admin-tab admin-tab--active" data-admin-tab="pending"><i class="ph-duotone ph-clock"></i>
-              Pendientes</button>
-            <button class="admin-tab" data-admin-tab="all"><i class="ph-duotone ph-stack"></i> Todas las
-              Reservas</button>
-            <button class="admin-tab" data-admin-tab="labs"><i class="ph-duotone ph-flask"></i> Laboratorios</button>
-            <button class="admin-tab" data-admin-tab="items"><i class="ph-duotone ph-package"></i> Inventario</button>
-            <button class="admin-tab" data-admin-tab="faculties"><i class="ph-duotone ph-buildings"></i> Facultades</button>
-            <button class="admin-tab" data-admin-tab="programs"><i class="ph-duotone ph-books"></i> Programas</button>
-          </div>
-
-          <div class="admin-panel" id="adminPending">
-            <h3 class="admin-panel__title">Solicitudes Pendientes</h3>
-            <div class="admin-list" id="pendingList"></div>
-          </div>
-
-          <div class="admin-panel admin-panel--hidden" id="adminAll">
-            <h3 class="admin-panel__title">Todas las Reservas</h3>
-            <div class="admin-list" id="allReservationsList"></div>
-          </div>
-
-          <div class="admin-panel admin-panel--hidden" id="adminLabs">
-            <h3 class="admin-panel__title">Gestion de Laboratorios</h3>
-            <button class="btn btn--primary btn--sm" id="addLabBtn"><i class="bi bi-plus-circle"></i> Nuevo
-              Laboratorio</button>
-            <div class="admin-list" id="adminLabsList"></div>
-          </div>
-          <div class="admin-panel admin-panel--hidden" id="adminItems">
-            <h3 class="admin-panel__title">Gestion de Inventario</h3>
-            <button class="btn btn--primary btn--sm" id="addItemBtn" style="margin-bottom: 1.5rem;"><i
-                class="bi bi-plus-circle"></i> Nuevo Material</button>
-            <div class="admin-list" id="adminItemsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
-          </div>
-
-          <div class="admin-panel admin-panel--hidden" id="adminFaculties">
-            <h3 class="admin-panel__title">Gestión de Facultades</h3>
-            <button class="btn btn--primary btn--sm" id="addFacultyBtn" style="margin-bottom: 1.5rem;"><i
-                class="bi bi-plus-circle"></i> Nueva Facultad</button>
-            <div class="admin-list" id="adminFacultiesList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
-          </div>
-
-          <div class="admin-panel admin-panel--hidden" id="adminPrograms">
-            <h3 class="admin-panel__title">Gestión de Programas</h3>
-            <button class="btn btn--primary btn--sm" id="addProgramBtn" style="margin-bottom: 1.5rem;"><i
-                class="bi bi-plus-circle"></i> Nuevo Programa</button>
-            <div class="admin-list" id="adminProgramsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view view--hidden" id="reportsView">
-        <div class="reports-container">
-          <h2 class="section-title">Reportes</h2>
-          <div class="reports-controls">
-            <div class="form-row">
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reportStartDate">Fecha inicial</label>
-                <input class="form-input" type="date" id="reportStartDate" required>
-              </div>
-              <div class="form-group form-group--col">
-                <label class="form-label" for="reportEndDate">Fecha final</label>
-                <input class="form-input" type="date" id="reportEndDate" required>
-              </div>
-              <div class="form-group form-group--col form-group--align-end">
-                <button class="btn btn--primary" id="generateReportBtn">Generar Reporte</button>
-              </div>
-            </div>
-          </div>
-          <div class="report-content" id="reportContent"></div>
-        </div>
-      </section>
-      <section class="view view--hidden" id="settingsView">
-        <div class="admin-container">
-          <div class="admin-panel" style="max-width: 600px; margin: 0 auto; display: block;">
-            <h2 class="section-title">Ajustes del Usuario</h2>
-            
-            <!-- Perfil Form -->
-            <div style="margin-bottom: 2rem;">
-              <h4 class="admin-panel__title"><i class="ph-duotone ph-user"></i> Datos Personales</h4>
-              <form class="modal-form" id="profileSettingsForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="profileSettingsMessage" role="alert" aria-live="polite"></div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="settingsFullName">Nombre Completo *</label>
-                  <input class="form-input" type="text" id="settingsFullName" required>
-                </div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="settingsFaculty">Facultad</label>
-                  <select class="form-select" id="settingsFaculty">
-                    <option value="">Seleccionar facultad</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="settingsProgram">Programa</label>
-                  <select class="form-select" id="settingsProgram">
-                    <option value="">Seleccionar programa</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="settingsSemester">Semestre</label>
-                  <input class="form-input" type="number" id="settingsSemester" min="1" max="20" placeholder="Ej: 5">
-                </div>
-                
-                <div class="modal-actions" style="justify-content: flex-end;">
-                  <button class="btn btn--primary" type="submit">Guardar Cambios</button>
-                </div>
-              </form>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
-
-            <!-- Password Form -->
-            <div>
-              <h4 class="admin-panel__title"><i class="ph-duotone ph-lock-key"></i> Cambiar Contraseña</h4>
-              <form class="modal-form" id="passwordSettingsForm" novalidate>
-                <div class="form-note form-note--error form-note--hidden" id="passwordSettingsMessage" role="alert" aria-live="polite"></div>
-                
-                <div class="form-group">
-                  <label class="form-label" for="settingsOldPassword">Contraseña Actual *</label>
-                  <input class="form-input" type="password" id="settingsOldPassword" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="settingsNewPassword">Nueva Contraseña *</label>
-                  <input class="form-input" type="password" id="settingsNewPassword" required minlength="6">
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="settingsConfirmPassword">Confirmar Nueva Contraseña *</label>
-                  <input class="form-input" type="password" id="settingsConfirmPassword" required minlength="6">
-                </div>
-
-                <div class="modal-actions" style="justify-content: flex-end;">
-                  <button class="btn btn--primary" type="submit">Actualizar Contraseña</button>
-                </div>
-              </form>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-    </main>
+      <main class="main" id="appMain"></main>
     </div>
 
   </div>
@@ -399,6 +143,24 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/modules/state.js"></script>
+  <script src="/js/modules/theme.js"></script>
+  <script src="/js/modules/ui.js"></script>
+  <script src="/js/modules/router.js"></script>
+  <script src="/js/modules/auth.js"></script>
+  <script src="/js/modules/calendar.js"></script>
+  <script src="/js/modules/reserve.js"></script>
+  <script src="/js/modules/my-reservations.js"></script>
+  <script src="/js/modules/admin-reservations.js"></script>
+  <script src="/js/modules/admin-labs.js"></script>
+  <script src="/js/modules/admin-items.js"></script>
+  <script src="/js/modules/admin-faculties.js"></script>
+  <script src="/js/modules/admin-programs.js"></script>
+  <script src="/js/modules/lab-editor.js"></script>
+  <script src="/js/modules/item-editor.js"></script>
+  <script src="/js/modules/faculty-editor.js"></script>
+  <script src="/js/modules/program-editor.js"></script>
+  <script src="/js/modules/reports.js"></script>
   <script src="/js/app.js"></script>
 </body>
 

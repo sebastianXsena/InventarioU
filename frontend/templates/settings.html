@@ -1,0 +1,73 @@
+<section class="view" id="settingsView">
+  <div class="admin-container">
+    <div class="admin-panel" style="max-width: 600px; margin: 0 auto; display: block;">
+      <h2 class="section-title">Ajustes del Usuario</h2>
+      
+      <!-- Perfil Form -->
+      <div style="margin-bottom: 2rem;">
+        <h4 class="admin-panel__title"><i class="ph-duotone ph-user"></i> Datos Personales</h4>
+        <form class="modal-form" id="profileSettingsForm" novalidate>
+          <div class="form-note form-note--error form-note--hidden" id="profileSettingsMessage" role="alert" aria-live="polite"></div>
+          
+          <div class="form-group">
+            <label class="form-label" for="settingsFullName">Nombre Completo *</label>
+            <input class="form-input" type="text" id="settingsFullName" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="settingsFaculty">Facultad</label>
+            <select class="form-select" id="settingsFaculty">
+              <option value="">Seleccionar facultad</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingsProgram">Programa</label>
+            <select class="form-select" id="settingsProgram">
+              <option value="">Seleccionar programa</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingsSemester">Semestre</label>
+            <input class="form-input" type="number" id="settingsSemester" min="1" max="20" placeholder="Ej: 5">
+          </div>
+          
+          <div class="modal-actions" style="justify-content: flex-end;">
+            <button class="btn btn--primary" type="submit">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
+
+      <!-- Password Form -->
+      <div>
+        <h4 class="admin-panel__title"><i class="ph-duotone ph-lock-key"></i> Cambiar Contraseña</h4>
+        <form class="modal-form" id="passwordSettingsForm" novalidate>
+          <div class="form-note form-note--error form-note--hidden" id="passwordSettingsMessage" role="alert" aria-live="polite"></div>
+          
+          <div class="form-group">
+            <label class="form-label" for="settingsOldPassword">Contraseña Actual *</label>
+            <input class="form-input" type="password" id="settingsOldPassword" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingsNewPassword">Nueva Contraseña *</label>
+            <input class="form-input" type="password" id="settingsNewPassword" required minlength="6">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="settingsConfirmPassword">Confirmar Nueva Contraseña *</label>
+            <input class="form-input" type="password" id="settingsConfirmPassword" required minlength="6">
+          </div>
+
+          <div class="modal-actions" style="justify-content: flex-end;">
+            <button class="btn btn--primary" type="submit">Actualizar Contraseña</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>

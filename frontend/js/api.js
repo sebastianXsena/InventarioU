@@ -78,6 +78,7 @@ const API = {
 
   // Items
   getItems() { return this.get('/items'); },
+  getItemById(id) { return this.get(`/items/${encodeURIComponent(id)}`); },
   getItemsByLab(labId) { return this.get(`/items/lab/${labId}`); },
   createItem(data) { return this.post('/items', data); },
   updateItem(id, data) { return this.patch(`/items/${id}`, data); },

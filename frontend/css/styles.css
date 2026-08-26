@@ -70,6 +70,11 @@ html.theme-dark body {
   background: transparent;
 }
 
+.main-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
 .layout--auth .header--sidebar {
   display: none;
 }
@@ -1784,7 +1789,7 @@ html.theme-dark .calendar-grid > .empty-state {
 }
 
 /* --- Responsive --- */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .layout {
     flex-direction: column;
   }
@@ -1807,13 +1812,14 @@ html.theme-dark .calendar-grid > .empty-state {
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .header--sidebar .nav {
     flex: 1 1 100%;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
   }
 
   .header--sidebar .nav__list {
@@ -1821,6 +1827,8 @@ html.theme-dark .calendar-grid > .empty-state {
     flex-wrap: nowrap;
     justify-content: flex-start;
     gap: 0.5rem;
+    width: max-content;
+    min-width: 100%;
   }
 
   .header--sidebar .nav__link {
@@ -1829,8 +1837,30 @@ html.theme-dark .calendar-grid > .empty-state {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
+    border-left: 1px solid transparent;
   }
 
+  .header--sidebar .nav__link--active {
+    border-left: 1px solid transparent;
+  }
+
+  .main {
+    padding: 1.25rem 1rem;
+  }
+
+  .topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .topbar__actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
   .nav__actions {
     flex-direction: row;
     align-items: center;
@@ -1863,9 +1893,27 @@ html.theme-dark .calendar-grid > .empty-state {
   }
 
   .admin-tabs {
-    flex-wrap: wrap;
-    justify-content: center;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: 0.5rem;
+    scrollbar-width: thin;
+  }
+
+  .admin-tab {
+    white-space: nowrap;
+  }
+
+  .admin-panel {
+    padding: 1rem;
+  }
+
+  .admin-item__info {
+    min-width: 100%;
+  }
+
+  .modal__content {
+    padding: 1.25rem;
   }
 
   .stats-grid {
@@ -1876,7 +1924,6 @@ html.theme-dark .calendar-grid > .empty-state {
 .topbar .btn--icon .ph-duotone,
 .topbar .btn--icon .bi {
   font-size: 1.25rem;
-  vertical-align: unset;
   margin-right: 0;
   display: block;
   line-height: 1;
@@ -2150,6 +2197,262 @@ html.theme-dark .admin-item--updating {
 
 .status-badge--pulse-rejected {
   animation: badge-pulse-rejected 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* --- Global UI refresh --- */
+:root {
+  --color-primary: #4f46e5;
+  --color-primary-dark: #4338ca;
+  --color-primary-light: #e0e7ff;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'DM Sans', sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 2px 8px rgba(79, 70, 229, 0.06);
+  --shadow-md: 0 14px 30px rgba(79, 70, 229, 0.1);
+  --shadow-lg: 0 24px 50px rgba(79, 70, 229, 0.14);
+  --transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body {
+  background-color: var(--color-gray-100);
+  background-image: radial-gradient(rgba(79, 70, 229, 0.1) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.42), transparent 42%);
+  z-index: -1;
+}
+
+.header--sidebar {
+  background: rgba(248, 250, 252, 0.88);
+  border-right-color: rgba(203, 213, 225, 0.75);
+  box-shadow: 8px 0 30px rgba(15, 23, 42, 0.05);
+}
+
+.header__logo,
+.section-title,
+.calendar-header__title,
+.auth-form__title,
+.modal__title {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+.header__logo { line-height: 1.15; }
+.header__logo--accent { color: var(--color-primary); }
+.section-title { font-size: clamp(1.45rem, 2vw, 1.8rem); }
+
+.header--sidebar .nav__link:hover {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--color-primary-dark);
+}
+
+.header--sidebar .nav__link--active { color: var(--color-primary-dark); font-weight: 700; }
+
+.nav__indicator {
+  background: rgba(224, 231, 255, 0.7);
+  border-color: rgba(79, 70, 229, 0.12);
+  border-left-color: var(--color-primary);
+  box-shadow: none;
+}
+
+.topbar {
+  min-height: 68px;
+  background: rgba(248, 250, 252, 0.78);
+  border-bottom-color: rgba(203, 213, 225, 0.62);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.main { padding-top: 2.75rem; }
+
+.admin-panel,
+.calendar-container,
+.reserve-container,
+.reports-controls,
+.report-content,
+.chart-card,
+.auth-card {
+  border-color: rgba(203, 213, 225, 0.72);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-panel,
+.calendar-container,
+.reserve-container,
+.reports-controls,
+.chart-card { background: rgba(255, 255, 255, 0.84); }
+
+.admin-item,
+.reservation-card,
+.inventory-card {
+  border-color: rgba(203, 213, 225, 0.72);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.admin-item:hover,
+.reservation-card:hover,
+.inventory-card:hover {
+  border-color: rgba(79, 70, 229, 0.42);
+  box-shadow: var(--shadow-md);
+}
+
+.form-input,
+.form-select {
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  border-color: var(--color-gray-200);
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14);
+}
+
+.btn { min-height: 40px; border-radius: var(--radius-sm); }
+
+.btn--primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
+}
+
+.btn--primary:hover {
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.28);
+}
+
+.btn--outline:hover {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.auth-card { border-radius: 22px; box-shadow: 0 22px 60px rgba(15, 23, 42, 0.13); }
+
+.auth-card__icon {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.22);
+}
+
+#appMain > * { animation: routeReveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.admin-item, .reservation-card, .inventory-card, .chart-card { animation: itemReveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.admin-item:nth-child(2), .reservation-card:nth-child(2), .inventory-card:nth-child(2) { animation-delay: 45ms; }
+.admin-item:nth-child(3), .reservation-card:nth-child(3), .inventory-card:nth-child(3) { animation-delay: 90ms; }
+.admin-item:nth-child(4), .reservation-card:nth-child(4), .inventory-card:nth-child(4) { animation-delay: 135ms; }
+
+@keyframes routeReveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes itemReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+html.theme-dark body {
+  background-color: #0f172a;
+  background-image: radial-gradient(rgba(129, 140, 248, 0.08) 1px, transparent 1px);
+}
+
+html.theme-dark body::before { background: linear-gradient(120deg, rgba(30, 41, 59, 0.45), transparent 48%); }
+html.theme-dark .header--sidebar, html.theme-dark .topbar { background: rgba(15, 23, 42, 0.9); border-color: rgba(148, 163, 184, 0.22); }
+html.theme-dark .nav__indicator { background: rgba(79, 70, 229, 0.22); border-color: rgba(129, 140, 248, 0.22); }
+html.theme-dark .header--sidebar .nav__link:hover { background: rgba(129, 140, 248, 0.1); }
+html.theme-dark .admin-panel, html.theme-dark .calendar-container, html.theme-dark .reserve-container, html.theme-dark .reports-controls, html.theme-dark .report-content, html.theme-dark .chart-card { background: rgba(30, 41, 59, 0.9); border-color: rgba(148, 163, 184, 0.25); }
+html.theme-dark .admin-item, html.theme-dark .reservation-card, html.theme-dark .inventory-card { background: rgba(15, 23, 42, 0.9); border-color: rgba(148, 163, 184, 0.25); }
+html.theme-dark .form-input, html.theme-dark .form-select { background: #0f172a; border-color: rgba(148, 163, 184, 0.32); }
+
+@media (max-width: 768px) {
+  .main { padding: 1.5rem 1rem 2rem; }
+  .admin-panel, .calendar-container, .reserve-container { border-radius: var(--radius-md); }
+  .auth-card { margin: 2rem auto; padding: 1.5rem; }
+  .admin-item__actions { width: 100%; }
+  .admin-item__actions .btn { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* --- Calendar navigation contrast --- */
+#calendarNavigation {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: var(--color-gray-200) !important;
+  color: var(--color-gray-700);
+  box-shadow: var(--shadow-sm);
+}
+
+#calendarNavigation #calendarWeekRangeLabel {
+  color: var(--color-gray-700) !important;
+}
+
+#calendarNavigation .btn--outline {
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+  background: transparent;
+}
+
+#calendarNavigation .btn--outline:hover:not(:disabled) {
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+#calendarNavigation .btn--outline:disabled {
+  color: var(--color-gray-400);
+  border-color: var(--color-gray-200);
+  opacity: 0.7;
+}
+
+html.theme-dark #calendarNavigation {
+  background: rgba(30, 41, 59, 0.96) !important;
+  border-color: var(--color-gray-700) !important;
+}
+
+html.theme-dark #calendarNavigation #calendarWeekRangeLabel {
+  color: var(--color-gray-100) !important;
+}
+
+html.theme-dark #calendarNavigation .btn--outline {
+  color: var(--color-gray-100);
+  border-color: var(--color-gray-600);
+}
+
+html.theme-dark #calendarNavigation .btn--outline:hover:not(:disabled) {
+  color: #e0e7ff;
+  background: rgba(79, 70, 229, 0.3);
+  border-color: #818cf8;
+}
+
+html.theme-dark #calendarNavigation .btn--outline:disabled {
+  color: var(--color-gray-500);
+  border-color: var(--color-gray-700);
+}
+
+@media (max-width: 600px) {
+  #calendarNavigation { gap: 0.5rem; padding: 0.625rem !important; }
+  #calendarNavigation .btn--outline { padding-inline: 0.55rem; font-size: 0.7rem; }
+  #calendarNavigation #calendarWeekRangeLabel { font-size: 0.78rem !important; text-align: center; }
 }
 
 /* --- Nav link active indicator --- */

@@ -38,7 +38,7 @@ app.use(sanitizeInput);
 
 // Serve the root-level frontend/ (InventarioU/frontend) instead of backend/public
 const FRONTEND_DIR = path.join(__dirname, '../../frontend');
-const TEMPLATE_DIR = path.join(FRONTEND_DIR, 'template');
+const TEMPLATE_DIR = path.join(FRONTEND_DIR, 'templates');
 app.use(express.static(FRONTEND_DIR));
 
 app.use('/api', apiRateLimit);
@@ -50,8 +50,15 @@ app.use('/api/faculties', facultyRoutes);
 app.use('/api/programs', programRoutes);
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(TEMPLATE_DIR, 'index.html'));
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
+
+// Alias para templates (URLs no cambian al usuario)
+app.get('/lab-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'lab-editor.html')));
+app.get('/item-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'item-editor.html')));
+app.get('/faculty-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'faculty-editor.html')));
+app.get('/program-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'program-editor.html')));
+app.get('/report-template.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'report-template.html')));
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
