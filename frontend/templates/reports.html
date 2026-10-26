@@ -1,0 +1,21 @@
+<section class="view" id="reportsView">
+  <div class="reports-container">
+    <h2 class="section-title">Reportes</h2>
+    <div class="reports-controls">
+      <div class="form-row">
+        <div class="form-group form-group--col">
+          <label class="form-label" for="reportStartDate">Fecha inicial</label>
+          <input class="form-input" type="date" id="reportStartDate" required>
+        </div>
+        <div class="form-group form-group--col">
+          <label class="form-label" for="reportEndDate">Fecha final</label>
+          <input class="form-input" type="date" id="reportEndDate" required>
+        </div>
+        <div class="form-group form-group--col form-group--align-end">
+          <button class="btn btn--primary" id="generateReportBtn">Generar Reporte</button>
+        </div>
+      </div>
+    </div>
+    <div class="report-content" id="reportContent"></div>
+  </div>
+</section>

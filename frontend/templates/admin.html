@@ -1,0 +1,47 @@
+<section class="view" id="adminView">
+  <div class="admin-container">
+    <h2 class="section-title">Panel de Administracion</h2>
+
+    <div class="admin-tabs">
+      <button class="admin-tab admin-tab--active" data-admin-tab="pending"><i class="ph-duotone ph-clock"></i> Pendientes</button>
+      <button class="admin-tab" data-admin-tab="all"><i class="ph-duotone ph-stack"></i> Todas las Reservas</button>
+      <button class="admin-tab" data-admin-tab="labs"><i class="ph-duotone ph-flask"></i> Laboratorios</button>
+      <button class="admin-tab" data-admin-tab="items"><i class="ph-duotone ph-package"></i> Inventario</button>
+      <button class="admin-tab" data-admin-tab="faculties"><i class="ph-duotone ph-buildings"></i> Facultades</button>
+      <button class="admin-tab" data-admin-tab="programs"><i class="ph-duotone ph-books"></i> Programas</button>
+    </div>
+
+    <div class="admin-panel" id="adminPending">
+      <h3 class="admin-panel__title">Solicitudes Pendientes</h3>
+      <div class="admin-list" id="pendingList"></div>
+    </div>
+
+    <div class="admin-panel admin-panel--hidden" id="adminAll">
+      <h3 class="admin-panel__title">Todas las Reservas</h3>
+      <div class="admin-list" id="allReservationsList"></div>
+    </div>
+
+    <div class="admin-panel admin-panel--hidden" id="adminLabs">
+      <h3 class="admin-panel__title">Gestion de Laboratorios</h3>
+      <button class="btn btn--primary btn--sm" id="addLabBtn"><i class="bi bi-plus-circle"></i> Nuevo Laboratorio</button>
+      <div class="admin-list" id="adminLabsList"></div>
+    </div>
+    <div class="admin-panel admin-panel--hidden" id="adminItems">
+      <h3 class="admin-panel__title">Gestion de Inventario</h3>
+      <button class="btn btn--primary btn--sm" id="addItemBtn" style="margin-bottom: 1.5rem;"><i class="bi bi-plus-circle"></i> Nuevo Material</button>
+      <div class="admin-list" id="adminItemsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+    </div>
+
+    <div class="admin-panel admin-panel--hidden" id="adminFaculties">
+      <h3 class="admin-panel__title">Gestión de Facultades</h3>
+      <button class="btn btn--primary btn--sm" id="addFacultyBtn" style="margin-bottom: 1.5rem;"><i class="bi bi-plus-circle"></i> Nueva Facultad</button>
+      <div class="admin-list" id="adminFacultiesList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+    </div>
+
+    <div class="admin-panel admin-panel--hidden" id="adminPrograms">
+      <h3 class="admin-panel__title">Gestión de Programas</h3>
+      <button class="btn btn--primary btn--sm" id="addProgramBtn" style="margin-bottom: 1.5rem;"><i class="bi bi-plus-circle"></i> Nuevo Programa</button>
+      <div class="admin-list" id="adminProgramsList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+    </div>
+  </div>
+</section>

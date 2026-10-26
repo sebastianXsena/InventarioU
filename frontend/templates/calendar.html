@@ -1,0 +1,19 @@
+<section class="view" id="calendarView">
+  <div class="calendar-container">
+    <div class="calendar-header">
+      <h2 class="calendar-header__title">Disponibilidad de Laboratorios</h2>
+      <div class="calendar-header__controls">
+        <select class="form-select" id="calendarLabSelect">
+          <option value="">Seleccionar laboratorio</option>
+        </select>
+        <button class="btn btn--primary" id="loadCalendarBtn">Cargar</button>
+      </div>
+    </div>
+    <div class="calendar-navigation" id="calendarNavigation" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e2e8f0); padding: 0.75rem 1rem; border-radius: 8px;">
+      <button class="btn btn--outline btn--sm" id="calendarPrevWeekBtn" type="button"><i class="ph ph-caret-left"></i> Semana Anterior</button>
+      <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);" id="calendarWeekRangeLabel"></span>
+      <button class="btn btn--outline btn--sm" id="calendarNextWeekBtn" type="button">Semana Siguiente <i class="ph ph-caret-right"></i></button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+</section>

@@ -1,0 +1,32 @@
+<div class="admin-container">
+  <div class="admin-panel">
+    <h2 class="section-title" id="pageTitle">Programa</h2>
+    <div class="lab-editor">
+      <h4 class="admin-panel__title" id="programEditorTitle">Nuevo Programa</h4>
+      <form class="modal-form" id="programEditorForm" novalidate>
+        <div class="form-note form-note--error form-note--hidden" id="programEditorMessage" role="alert" aria-live="polite"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="programEditorName">Nombre del Programa *</label>
+          <input class="form-input" type="text" id="programEditorName" required placeholder="Ej: Ingeniería de Sistemas">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="programEditorFaculty">Facultad *</label>
+          <select class="form-select" id="programEditorFaculty" required>
+            <option value="">Cargando facultades...</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn--secondary" type="button" id="cancelProgramEditorBtn">
+            <i class="ph ph-arrow-left"></i> Volver
+          </button>
+          <button class="btn btn--primary" type="submit">
+            <i class="ph ph-floppy-disk"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

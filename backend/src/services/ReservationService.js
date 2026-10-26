@@ -3,6 +3,59 @@ const reservationRepo = require('../repositories/reservationRepo');
 const labRepo = require('../repositories/labRepo');
 
 class ReservationService {
+  isBlockedBySchedule(blockedSchedule, startTime, endTime) {
+    if (!Array.isArray(blockedSchedule) || blockedSchedule.length === 0) return false;
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+    if (!(end > start)) return false;
+
+    const toDayOfWeek = (d) => ((d.getDay() + 6) % 7) + 1; // Mon=1..Sun=7
+    const minutesOfDay = (d) => (d.getHours() * 60) + d.getMinutes();
+    const clampEndMinutes = (segEnd, dayEnd) => {
+      // If segment ends exactly at day boundary (00:00 next day), treat as 24:00
+      if (segEnd.getTime() === dayEnd.getTime()) return 1440;
+      return minutesOfDay(segEnd);
+    };
+
+    // Iterate each day segment spanned by [start,end)
+    const dayCursor = new Date(start);
+    dayCursor.setHours(0, 0, 0, 0);
+
+    while (dayCursor < end) {
+      const dayStart = new Date(dayCursor);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+
+      const segStart = start > dayStart ? start : dayStart;
+      const segEnd = end < dayEnd ? end : dayEnd;
+      if (segEnd <= segStart) {
+        dayCursor.setDate(dayCursor.getDate() + 1);
+        continue;
+      }
+
+      const dow = toDayOfWeek(dayStart);
+      const segStartMin = minutesOfDay(segStart);
+      const segEndMin = clampEndMinutes(segEnd, dayEnd);
+
+      for (const entry of blockedSchedule) {
+        if (!entry || entry.day_of_week !== dow) continue;
+        const [sh, sm] = String(entry.start).split(':').map((n) => parseInt(n, 10));
+        const [eh, em] = String(entry.end).split(':').map((n) => parseInt(n, 10));
+        const blockStartMin = (sh * 60) + sm;
+        const blockEndMin = (eh * 60) + em;
+
+        const overlaps = segStartMin < blockEndMin && segEndMin > blockStartMin;
+        if (overlaps) return true;
+      }
+
+      dayCursor.setDate(dayCursor.getDate() + 1);
+    }
+
+    return false;
+  }
+
   async create(userId, payload) {
     const labId = payload?.labId ?? payload?.lab_id;
     const startTime = payload?.startTime ?? payload?.start_time;
@@ -39,6 +92,12 @@ class ReservationService {
     if (startDate <= new Date()) {
       const err = new Error('Reservations cannot be made for past dates');
       err.statusCode = 400;
+      throw err;
+    }
+
+    if (this.isBlockedBySchedule(lab.blocked_schedule, startTime, endTime)) {
+      const err = new Error('Time slot blocked - laboratory has classes');
+      err.statusCode = 409;
       throw err;
     }
 
@@ -199,6 +258,43 @@ class ReservationService {
 
   async getMonthlyReport(year, month) {
     return reservationRepo.getMonthlyReport(year, month);
+  }
+
+  async getReportByDateRange(startDate, endDate) {
+    const rows = await reservationRepo.getReportByDateRange(startDate, endDate);
+    const byStatus = {};
+    const byLab = new Map();
+    const byDate = new Map();
+    const topItems = new Map();
+
+    rows.forEach((reservation) => {
+      byStatus[reservation.status] = (byStatus[reservation.status] || 0) + 1;
+
+      const lab = byLab.get(reservation.lab_name) || { lab_name: reservation.lab_name, count: 0 };
+      lab.count += 1;
+      byLab.set(reservation.lab_name, lab);
+
+      const date = new Date(reservation.start_time).toISOString().slice(0, 10);
+      byDate.set(date, (byDate.get(date) || 0) + 1);
+
+      const items = Array.isArray(reservation.items_used) ? reservation.items_used : [];
+      items.forEach((item) => {
+        if (!item.item_name) return;
+        topItems.set(item.item_name, (topItems.get(item.item_name) || 0) + Number(item.quantity || 0));
+      });
+    });
+
+    return {
+      total_reservations: rows.length,
+      approved_reservations: byStatus.approved || 0,
+      cancelled_reservations: byStatus.cancelled || 0,
+      by_status: byStatus,
+      by_lab: Array.from(byLab.values()).sort((a, b) => b.count - a.count),
+      trend: Array.from(byDate, ([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)),
+      top_items: Array.from(topItems, ([item_name, total_requested]) => ({ item_name, total_requested }))
+        .sort((a, b) => b.total_requested - a.total_requested)
+        .slice(0, 10),
+    };
   }
 }
 

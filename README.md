@@ -75,6 +75,41 @@ npm run dev        # Desarrollo (hot reload)
 
 Abrir http://localhost:3000
 
+## Integracion continua
+
+El workflow [ci.yml](.github/workflows/ci.yml) valida automáticamente los cambios
+en cada `push` y `pull_request` dirigido a `main`. El job de pruebas:
+
+1. Configura Node.js 20 en Ubuntu.
+2. Instala las dependencias con `npm ci`.
+3. Ejecuta las pruebas con `npm test`.
+
+Si las pruebas pasan, el job `docker` construye la imagen de la aplicación.
+Una prueba fallida detiene el workflow y evita que se construya esa imagen,
+porque una versión que no cumple las reglas de negocio no debe avanzar hacia
+producción.
+
+Para ejecutar las pruebas localmente:
+
+```bash
+cd backend
+npm test
+```
+
+Para reproducir la construcción de la imagen:
+
+```bash
+docker build -t inventariou:local .
+```
+
+### Detección de fallos
+
+El experimento de fallo se puede reproducir cambiando temporalmente una
+expectativa de las pruebas o una regla de validación, haciendo `npm test` y
+subiendo el cambio a una rama o a `main`. GitHub Actions mostrará el caso
+fallido en los logs y no ejecutará el job de construcción Docker. Revertir el
+cambio después de capturar la evidencia de la ejecución fallida.
+
 ## Estructura del Proyecto
 
 ```
@@ -109,14 +144,14 @@ backend/
 │       ├── init-db.js           # Database initialization
 │       ├── seed-db.js           # Sample data
 │       └── validation.js        # Validation helper
-├── public/                      # Frontend
-│   ├── index.html
-│   ├── css/styles.css           # BEM methodology
-│   ├── js/api.js                # API client
-│   ├── js/app.js                # Application logic
-│   └── report-template.html     # PDF report template
+└── (sin frontend embebido)      # El frontend se sirve desde la carpeta /frontend
 └── docs/
     └── API.md                   # API documentation
+
+frontend/                         # Frontend (Vanilla JS)
+├── index.html
+├── css/
+└── js/
 ```
 
 ## API Endpoints

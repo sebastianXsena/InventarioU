@@ -10,6 +10,8 @@ const userRoutes = require('./routes/userRoutes');
 const labRoutes = require('./routes/labRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const facultyRoutes = require('./routes/facultyRoutes');
+const programRoutes = require('./routes/programRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,27 +25,40 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(rateLimit({
+const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-}));
+});
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(sanitizeInput);
 
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve the root-level frontend/ (InventarioU/frontend) instead of backend/public
+const FRONTEND_DIR = path.join(__dirname, '../../frontend');
+const TEMPLATE_DIR = path.join(FRONTEND_DIR, 'templates');
+app.use(express.static(FRONTEND_DIR));
 
+app.use('/api', apiRateLimit);
 app.use('/api/auth', userRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/faculties', facultyRoutes);
+app.use('/api/programs', programRoutes);
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
+
+// Alias para templates (URLs no cambian al usuario)
+app.get('/lab-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'lab-editor.html')));
+app.get('/item-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'item-editor.html')));
+app.get('/faculty-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'faculty-editor.html')));
+app.get('/program-editor.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'program-editor.html')));
+app.get('/report-template.html', (req, res) => res.sendFile(path.join(TEMPLATE_DIR, 'report-template.html')));
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

@@ -31,6 +31,7 @@ CREATE TABLE laboratories (
   location VARCHAR(255) NOT NULL,
   capacity INT NOT NULL CHECK (capacity > 0),
   status VARCHAR(20) CHECK (status IN ('active', 'maintenance')) DEFAULT 'active',
+  blocked_schedule JSONB NOT NULL DEFAULT '[]'::jsonb,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
