@@ -3,6 +3,38 @@
 
   let charts = {};
 
+  function normalizeReport(data) {
+    if (!Array.isArray(data)) {
+      return {
+        total_reservations: Number(data?.total_reservations) || 0,
+        approved_reservations: Number(data?.approved_reservations) || 0,
+        cancelled_reservations: Number(data?.cancelled_reservations) || 0,
+        by_status: data?.by_status || {},
+        by_lab: Array.isArray(data?.by_lab) ? data.by_lab : [],
+        trend: Array.isArray(data?.trend) ? data.trend : [],
+        top_items: Array.isArray(data?.top_items) ? data.top_items : [],
+      };
+    }
+
+    const byStatus = {};
+    const byLab = new Map();
+    data.forEach((reservation) => {
+      byStatus[reservation.status] = (byStatus[reservation.status] || 0) + 1;
+      const labName = reservation.lab_name || 'Sin laboratorio';
+      byLab.set(labName, (byLab.get(labName) || 0) + 1);
+    });
+
+    return {
+      total_reservations: data.length,
+      approved_reservations: byStatus.approved || 0,
+      cancelled_reservations: byStatus.cancelled || 0,
+      by_status: byStatus,
+      by_lab: Array.from(byLab, ([lab_name, count]) => ({ lab_name, count })),
+      trend: [],
+      top_items: [],
+    };
+  }
+
   async function generateReport() {
     const startDate = document.getElementById('reportStartDate').value;
     const endDate = document.getElementById('reportEndDate').value;
@@ -16,7 +48,7 @@
     content.innerHTML = '<div class="loading">Generando reporte...</div>';
 
     try {
-      const data = await API.getReportByDateRange(startDate, endDate);
+      const data = normalizeReport(await API.getReportByDateRange(startDate, endDate));
       
       let html = `
         <div class="report-stats">

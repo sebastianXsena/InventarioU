@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "test": "node --test",
     "db:init": "node src/utils/init-db.js",
     "db:migrate:blocked-schedule": "node src/utils/migrate-blocked-schedule.js",
     "db:migrate:blocked-schedule-names": "node src/utils/migrate-blocked-schedule-names.js",

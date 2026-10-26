@@ -720,20 +720,35 @@ html.theme-dark .auth-form__title {
 
 /* --- Calendar --- */
 .calendar-container {
-  background: white;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-gray-200);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0.5rem 0;
 }
 
 .calendar-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  justify-content: stretch;
   align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  margin-bottom: 1.75rem;
+  gap: 2rem;
+}
+
+.calendar-header__controls {
+  padding: 0.75rem;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.calendar-header__controls .form-select { flex: 1; min-width: 0; }
+
+.calendar-grid {
+  width: 100%;
 }
 
 .calendar-header__title {
@@ -1170,6 +1185,17 @@ html.theme-dark .modal__content {
   background: var(--color-gray-800);
   border-color: var(--color-gray-700);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+html.theme-dark .calendar-container {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html.theme-dark .calendar-header__controls {
+  border-color: rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.72);
 }
 
 html.theme-dark .header {
@@ -1620,6 +1646,57 @@ html.theme-dark .report-table tr:hover {
   border: 1px solid var(--color-gray-200);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.report-stat-card {
+  min-height: 112px;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: var(--transition);
+}
+
+.report-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.report-stat-card__title {
+  color: var(--color-gray-500);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.report-stat-card__value {
+  color: var(--color-gray-900);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+html.theme-dark .report-stats { border-bottom-color: var(--color-gray-700); }
+html.theme-dark .report-stat-card { background: var(--color-gray-900); border-color: var(--color-gray-700); }
+html.theme-dark .report-stat-card__title { color: var(--color-gray-300); }
+html.theme-dark .report-stat-card__value { color: var(--color-gray-50); }
+
+@media (max-width: 640px) {
+  .report-stats { grid-template-columns: 1fr; padding: 1rem; }
+  .report-stat-card { min-height: 88px; }
 }
 
 .report-table {
@@ -2388,10 +2465,110 @@ html.theme-dark .form-input, html.theme-dark .form-select { background: #0f172a;
   .auth-card { margin: 2rem auto; padding: 1.5rem; }
   .admin-item__actions { width: 100%; }
   .admin-item__actions .btn { flex: 1; }
+  .calendar-header { grid-template-columns: 1fr; gap: 1rem; }
+  .calendar-header__controls { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* --- Calendar uses the page canvas instead of a floating card --- */
+.calendar-container {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding-inline: 0;
+  max-width: none;
+  margin-inline: 0;
+}
+
+html.theme-dark .calendar-container {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* --- Full-canvas page shells --- */
+.reserve-container,
+.reports-container,
+.reservations-container,
+.inventory-container,
+.admin-container {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.reserve-container,
+.reports-container,
+.admin-container {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding-inline: 0;
+}
+
+.report-content {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+
+.reserve-container > .section-title,
+.reports-container > .section-title,
+.admin-container > .section-title {
+  margin-bottom: 1.5rem;
+}
+
+.reserve-container .reserve-form {
+  max-width: none;
+  margin-inline: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+}
+
+.reserve-form > .form-row {
+  display: contents;
+}
+
+.reserve-form > .form-group:has(#itemsSelector),
+.reserve-form > .form-group:has(#reserveNotes),
+.reserve-form > .btn {
+  grid-column: 1 / -1;
+}
+
+.reserve-form > .btn {
+  justify-self: start;
+}
+
+.admin-container > .admin-panel {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding-inline: 0;
+}
+
+html.theme-dark .reserve-container,
+html.theme-dark .reports-container,
+html.theme-dark .reservations-container,
+html.theme-dark .inventory-container,
+html.theme-dark .admin-container,
+html.theme-dark .report-content,
+html.theme-dark .admin-container > .admin-panel {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 700px) {
+  .reserve-container .reserve-form { grid-template-columns: 1fr; column-gap: 0; }
+  .reserve-form > .form-group:has(#itemsSelector),
+  .reserve-form > .form-group:has(#reserveNotes),
+  .reserve-form > .btn { grid-column: auto; }
+  .reserve-form > .btn { justify-self: stretch; }
 }
 
 /* --- Calendar navigation contrast --- */
@@ -2544,6 +2721,48 @@ html.theme-dark #calendarNavigation .btn--outline:disabled {
 
 #themeToggleBtn.theme-toggle--spin-in i {
   animation: theme-spin-in 0.28s cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+/* --- Reports desktop composition --- */
+.main { max-width: none; margin-inline: 0; }
+.reports-container { max-width: none; }
+
+.reports-controls .form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.reports-controls .form-group { margin-bottom: 0; }
+
+.charts-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  margin: 0;
+}
+
+.charts-grid .chart-card { min-width: 0; height: 300px; }
+.charts-grid .chart-card--wide { grid-column: 1 / -1; }
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  min-height: 0;
+}
+
+.chart-container canvas {
+  display: block;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+@media (max-width: 700px) {
+  .reports-controls .form-row { grid-template-columns: 1fr; gap: 0.75rem; }
+  .reports-controls .form-group { margin-bottom: 0; }
+  .charts-grid { grid-template-columns: 1fr; padding: 0.75rem; }
+  .charts-grid .chart-card--wide { grid-column: auto; }
 }
 
 /* --- Respect reduced motion --- */
