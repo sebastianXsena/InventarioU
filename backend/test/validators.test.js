@@ -17,7 +17,7 @@ test('register schema normalizes valid user data', () => {
   assert.equal(error, undefined);
   assert.deepEqual(value, {
     name: 'Ana Torres',
-    email: 'ana@example.com',
+    email: 'correo-incorrecto@example.com',
     password: 'secure-password',
     role: 'student',
   });
