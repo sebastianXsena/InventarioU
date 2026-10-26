@@ -10,8 +10,8 @@ const create = async (req, res, next) => {
 };
 
 const getAll = async (req, res, next) => {
-  try {hg
-    consgt items = await itemService.getAll();
+  try {
+    const items = await itemService.getAll();
     res.json(items);
   } catch (error) {
     next(error);
